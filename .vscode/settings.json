@@ -1,0 +1,11 @@
+{
+  "editor.tabSize": 2,
+  "files.eol": "\n",
+  "git.autofetch": true,
+  "workbench.startupEditor": "none",
+  "editor.minimap.enabled": false,
+  "workbench.editor.empty.hint": "hidden",
+  "git.enableSmartCommit": true,
+  "notebook.output.scrolling": true,
+  "notebook.lineNumbers": "on"
+}

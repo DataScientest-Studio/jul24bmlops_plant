@@ -1,53 +1,53 @@
-Project Name
-==============================
+# jul24_bmlops_plant_recognition: Plant Recognition MLOps
 
-This project is a starting Pack for MLOps projects based on the subject "movie_recommandation". It's not perfect so feel free to make some modifications on it.
+This project was made during the Data Scientist course of [Datascientest](https://datascientest.com/en) and used the datasets described below:
+- [PlantVillage Dataset](https://www.kaggle.com/datasets/abdallahalidev/plantvillage-dataset)
+- [Plant Seedlings Dataset](https://vision.eng.au.dk/plant-seedlings-dataset/)
 
-Project Organization
-------------
+## Team
 
-    ├── LICENSE
-    ├── README.md          <- The top-level README for developers using this project.
-    ├── data
-    │   ├── external       <- Data from third party sources.
-    │   ├── interim        <- Intermediate data that has been transformed.
-    │   ├── processed      <- The final, canonical data sets for modeling.
-    │   └── raw            <- The original, immutable data dump.
-    │
-    ├── logs               <- Logs from training and predicting
-    │
-    ├── models             <- Trained and serialized models, model predictions, or model summaries
-    │
-    ├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
-    │                         the creator's initials, and a short `-` delimited description, e.g.
-    │                         `1.0-jqp-initial-data-exploration`.
-    │
-    ├── references         <- Data dictionaries, manuals, and all other explanatory materials.
-    │
-    ├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
-    │   └── figures        <- Generated graphics and figures to be used in reporting
-    │
-    ├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
-    │                         generated with `pip freeze > requirements.txt`
-    │
-    ├── src                <- Source code for use in this project.
-    │   ├── __init__.py    <- Makes src a Python module
-    │   │
-    │   ├── data           <- Scripts to download or generate data
-    │   │   └── make_dataset.py
-    │   │
-    │   ├── features       <- Scripts to turn raw data into features for modeling
-    │   │   └── build_features.py
-    │   │
-    │   ├── models         <- Scripts to train models and then use trained models to make
-    │   │   │                 predictions
-    │   │   ├── predict_model.py
-    │   │   └── train_model.py
-    │   │
-    │   ├── visualization  <- Scripts to create exploratory and results oriented visualizations
-    │   │   └── visualize.py
-    │   └── config         <- Describe the parameters used in train_model.py and predict_model.py
+- Alex Tavkhelidze - [GitHub](https://github.com/alexbgg)
+- Arif Haidari - [LinkedIn](https://www.linkedin.com/in/arif-haidari/), [GitHub](https://github.com/arifhaidari)
+- Luigi Menale - [LinkedIn](https://www.linkedin.com/in/lmenale/), [GitHub](https://github.com/lmenale)
 
---------
+Coordinator Sebastien Sime
+
+## Project Organization
+
+    ├── .github
+    │   └── workflows         <- Contains the template for the Pull Request
+    │
+    ├── README.md             <- The top-level README for developers using this project.
+    ├── ROADMAP.md            <- The summary plan for developers using this project.
+    │
+    ├── data                  <- Should be in your computer but not on Github (only in .gitignore)
+    │   └── raw               <- The original, immutable data dump.
+    │
+    ├── models                <- Trained and serialized models, model predictions, or model summaries
+    │
+    ├── reports               <- The reports that you'll make during this project as PDF
+    │   └── figures           <- Generated graphics and figures to be used in reporting
+    │
+    ├── poetry.lock           <- Dependencies used by poetry.
+    ├── pyproject.toml        <- Package manager.
+    │
+    └── src                   <- Source code for use in this project.
+        │
+        ├── xxx               <- Here are the dynamic pages created with Streamlit
+        │
+        ├── web               <- Contains all the static paged that are parsed using Streamlit
+        │   ├── img           <- Images used inside the Streamlit app
+        │       └── classes   <- Images that will show the prediction of each class
+        │
+        ├── xxx               <- Utility module for presenting and managing the Tensorflow methods
+        └── xxx               <- main Streamlit app
+
+
+## Summary plan
+Please refer [here](ROADMAP.md)
+
+## Script
+We will use this to mount the GDrive folder.
+
 
 <p><small>Project based on the <a target="_blank" href="https://drivendata.github.io/cookiecutter-data-science/">cookiecutter data science project template</a>. #cookiecutterdatascience</small></p>
