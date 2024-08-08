@@ -1,78 +1,79 @@
 import pytest
-from unittest.mock import MagicMock, patch
-
-# Mock TensorFlow imports to avoid loading TensorFlow during testing
-with patch.dict('sys.modules', {'tensorflow': MagicMock(), 'tensorflow.keras': MagicMock(), 'tensorflow.keras.layers': MagicMock(), 'tensorflow.keras.applications': MagicMock()}):
-    from models.train_model import TrainPR
-
-# Constants for testing
-IMAGE_SIZE = (180, 180)
-BATCH_SIZE = 32
-BASE_LEARNING_RATE = 0.0001
-FINE_TUNE_AT = 100
-INITIAL_EPOCHS = 10
-FINE_TUNE_EPOCHS = 10
+from unittest.mock import MagicMock
+import tensorflow as tf
+from train_model import TrainPR
 
 @pytest.fixture
-def train_pr():
-    return TrainPR(
-        image_size=IMAGE_SIZE,
-        batch_size=BATCH_SIZE,
-        base_learning_rate=BASE_LEARNING_RATE,
-        fine_tune_at=FINE_TUNE_AT,
-        initial_epochs=INITIAL_EPOCHS,
-        fine_tune_epochs=FINE_TUNE_EPOCHS
-    )
+def mock_model():
+    mock = MagicMock(spec=tf.keras.Model)
+    mock.image_size = (180, 180)
+    mock.batch_size = 32
+    mock.base_learning_rate = 0.0001
+    mock.fine_tune_at = 100
+    mock.initial_epochs = 10
+    mock.fine_tune_epochs = 10
+    return mock
 
-@patch("models.train_model.tf.keras.utils.image_dataset_from_directory")
-def test_load_data(mock_image_dataset, train_pr):
-    # Arrange
-    mock_image_dataset.return_value = MagicMock()
+def test_init_with_model_path(mocker, mock_model):
+    # Mock the load_model function to return the mock model
+    mocker.patch('tensorflow.keras.models.load_model', return_value=mock_model)
+    
+    # Instantiate the TrainPR class, which should load the model
+    train_pr = TrainPR(model_path="dummy_path")
+    
+    # Check that the model was set correctly
+    assert train_pr.model == mock_model
+    assert train_pr.image_size == (180, 180)
+    assert train_pr.batch_size == 32
+    assert train_pr.base_learning_rate == 0.0001
+    assert train_pr.fine_tune_at == 100
+    assert train_pr.initial_epochs == 10
+    assert train_pr.fine_tune_epochs == 10
 
-    # Act
-    train_pr.load_data("fake_data_dir")
+def test_init_with_kwargs():
+    train_pr = TrainPR(image_size=(224, 224), batch_size=64, base_learning_rate=0.00005, fine_tune_at=50, initial_epochs=5, fine_tune_epochs=15)
+    
+    assert train_pr.model is None
+    assert train_pr.image_size == (224, 224)
+    assert train_pr.batch_size == 64
+    assert train_pr.base_learning_rate == 0.00005
+    assert train_pr.fine_tune_at == 50
+    assert train_pr.initial_epochs == 5
+    assert train_pr.fine_tune_epochs == 15
 
-    # Assert
-    mock_image_dataset.assert_called()
-    assert train_pr.train_ds is not None
-    assert train_pr.val_ds is not None
-    assert train_pr.test_ds is not None
+def test_update_hyperparameters():
+    train_pr = TrainPR(image_size=(224, 224), batch_size=64, base_learning_rate=0.00005, fine_tune_at=50, initial_epochs=5, fine_tune_epochs=15)
+    train_pr.update_hyperparameters(batch_size=128, fine_tune_at=75)
 
-@patch("models.train_model.tf.keras.Model.compile")
-@patch("models.train_model.tf.keras.Input")
-@patch("models.train_model.MobileNetV2")
-def test_build_model(mock_mobilenet, mock_input, mock_compile, train_pr):
-    # Arrange
-    mock_input.return_value = MagicMock()
-    mock_mobilenet.return_value = MagicMock()
+    assert train_pr.batch_size == 128
+    assert train_pr.fine_tune_at == 75
+    assert train_pr.image_size == (224, 224)  # Unchanged
+    assert train_pr.base_learning_rate == 0.00005  # Unchanged
 
-    # Act
-    train_pr.build_model(num_classes=10)
+def test_build_model(mocker, mock_model):
+    mocker.patch('tensorflow.keras.applications.MobileNetV2')
+    mocker.patch('tensorflow.keras.Model', return_value=mock_model)
 
-    # Assert
-    mock_mobilenet.assert_called_once()
-    mock_compile.assert_called_once()
-    assert train_pr.model is not None
+    train_pr = TrainPR(image_size=(224, 224), batch_size=64, base_learning_rate=0.00005, fine_tune_at=50, initial_epochs=5, fine_tune_epochs=15)
+    train_pr.build_model(num_classes=5)
 
-@patch("models.train_model.tf.keras.Model.fit")
-def test_train_model(mock_fit, train_pr):
-    # Arrange
-    train_pr.model = MagicMock()
+    assert train_pr.model == mock_model
+    tf.keras.Model.assert_called_once()
 
-    # Act
-    history = train_pr.train_model()
+def test_train_model(mocker, mock_model):
+    mocker.patch.object(mock_model, 'fit', return_value=MagicMock())
+    train_pr = TrainPR(image_size=(224, 224), batch_size=64, base_learning_rate=0.00005, fine_tune_at=50, initial_epochs=5, fine_tune_epochs=15)
+    train_pr.model = mock_model
 
-    # Assert
-    train_pr.model.fit.assert_called()
-    assert history is not None
+    history, history_fine = train_pr.train_model()
 
-@patch("models.train_model.tf.keras.Model.save")
-def test_save_model(mock_save, train_pr):
-    # Arrange
-    train_pr.model = MagicMock()
+    assert mock_model.fit.call_count == 2
 
-    # Act
-    train_pr.save_model("fake_model_path")
+def test_save_model(mocker, mock_model):
+    mocker.patch.object(mock_model, 'save')
+    train_pr = TrainPR(image_size=(224, 224), batch_size=64, base_learning_rate=0.00005, fine_tune_at=50, initial_epochs=5, fine_tune_epochs=15)
+    train_pr.model = mock_model
 
-    # Assert
-    train_pr.model.save.assert_called_once_with("fake_model_path")
+    train_pr.save_model("dummy_path")
+
+    mock_model.save.assert_called_once_with("dummy_path")

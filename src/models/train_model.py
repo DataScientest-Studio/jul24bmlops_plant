@@ -14,18 +14,17 @@ from tensorflow.keras.applications import MobileNetV2
 # Number of Layers and Units: Architecture of the neural network, including the number of layers and neurons per layer.
 class TrainPR:
     def __init__(
-        self,
-        image_size: tuple,
-        batch_size: int,
-        base_learning_rate: float,
-        fine_tune_at: int,
-        initial_epochs: int,
-        fine_tune_epochs: int,
+            self,
+            model_path=None,
+            **kwargs
     ):
         """
         Initialize the training configuration.
 
         Args:
+            model_path (str, optional): The path to a previously saved model. If provided, the model will be loaded from this path.
+            kwargs: Other hyperparameters, which are saved in self.model when provided.
+
             image_size (tuple): The size of the input images (height, width).
             batch_size (int): The number of samples per batch.
             base_learning_rate (float): The initial learning rate for training.
@@ -45,16 +44,59 @@ class TrainPR:
             val_ds (Optional[tf.data.Dataset]): The validation dataset, initialized as None.
             test_ds (Optional[tf.data.Dataset]): The test dataset, initialized as None.
         """
-        self.image_size = image_size
-        self.batch_size = batch_size
-        self.base_learning_rate = base_learning_rate
-        self.fine_tune_at = fine_tune_at
-        self.initial_epochs = initial_epochs
-        self.fine_tune_epochs = fine_tune_epochs
         self.model = None
+        if model_path:
+            # print("Loading model from path:", model_path)  # Debug statement
+            self.load_model(model_path)
+            # print("Model loaded:", self.model)  # Debug statement
+        else:
+            self.image_size = kwargs.get("image_size")
+            self.batch_size = kwargs.get("batch_size")
+            self.base_learning_rate = kwargs.get("base_learning_rate")
+            self.fine_tune_at = kwargs.get("fine_tune_at")
+            self.initial_epochs = kwargs.get("initial_epochs")
+            self.fine_tune_epochs = kwargs.get("fine_tune_epochs")
+            self.model = None
         self.train_ds = None
         self.val_ds = None
         self.test_ds = None
+
+    def load_model(self, model_path: str):
+        """
+        Load a model from the specified path and restore hyperparameters.
+
+        Args:
+            model_path (str): The path to the saved model file.
+        """
+        self.model = tf.keras.models.load_model(model_path)
+        # print("Inside load_model, self.model =", self.model)  # Debug statement
+        if self.model is not None:
+            self.image_size = tuple(self.model.image_size)
+            self.batch_size = self.model.batch_size
+            self.base_learning_rate = self.model.base_learning_rate
+            self.fine_tune_at = self.model.fine_tune_at
+            self.initial_epochs = self.model.initial_epochs
+            self.fine_tune_epochs = self.model.fine_tune_epochs
+
+    def update_hyperparameters(self, **kwargs):
+        """
+        Update hyperparameters of the model.
+
+        Args:
+            kwargs: Hyperparameters to update. Possible keys are:
+                    - image_size (tuple)
+                    - batch_size (int)
+                    - base_learning_rate (float)
+                    - fine_tune_at (int)
+                    - initial_epochs (int)
+                    - fine_tune_epochs (int)
+        """
+        self.image_size = kwargs.get("image_size", self.image_size)
+        self.batch_size = kwargs.get("batch_size", self.batch_size)
+        self.base_learning_rate = kwargs.get("base_learning_rate", self.base_learning_rate)
+        self.fine_tune_at = kwargs.get("fine_tune_at", self.fine_tune_at)
+        self.initial_epochs = kwargs.get("initial_epochs", self.initial_epochs)
+        self.fine_tune_epochs = kwargs.get("fine_tune_epochs", self.fine_tune_epochs)
 
     def load_data(self, data_dir: str):
         """
@@ -217,6 +259,15 @@ class TrainPR:
         Parameters:
         filename (str): The path to the file where the model will be saved.
         """
+        # Save the hyperparameters in the model object
+        self.model.image_size = self.image_size
+        self.model.batch_size = self.batch_size
+        self.model.base_learning_rate = self.base_learning_rate
+        self.model.fine_tune_at = self.fine_tune_at
+        self.model.initial_epochs = self.initial_epochs
+        self.model.fine_tune_epochs = self.fine_tune_epochs
+
+        # Save the model
         self.model.save(filename)
 
 
@@ -227,7 +278,7 @@ if __name__ == "__main__":
     # Constants
     BATCH_SIZE = 32
     IMAGE_SIZE = (180, 180)
-    DATA_DIR = "data/raw"
+    DATA_DIR = "data"
     BASE_LEARNING_RATE = 0.0001
     FINE_TUNE_AT = 100
     INITIAL_EPOCHS = 10
@@ -235,7 +286,6 @@ if __name__ == "__main__":
 
     # Create an instance of TrainPR
     train_pr = TrainPR(
-        data_dir=DATA_DIR,
         image_size=IMAGE_SIZE,
         batch_size=BATCH_SIZE,
         base_learning_rate=BASE_LEARNING_RATE,
