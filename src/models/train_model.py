@@ -1,8 +1,7 @@
-import os
-
 import tensorflow as tf
 from tensorflow.keras import layers
 from tensorflow.keras.applications import MobileNetV2
+import numpy as np
 
 
 # hyperparameters:
@@ -111,12 +110,9 @@ class TrainPR:
             self.val_ds: The validation dataset, which is 20% of the data in the 'training' directory.
             self.test_ds: The test dataset, which is all the data in the 'test' directory.
         """
-        train_dir = os.path.join(data_dir, "training")
-        test_dir = os.path.join(data_dir, "test")
-
         # Create a validation set from the training set (20% of training data)
         self.train_ds = tf.keras.utils.image_dataset_from_directory(
-            train_dir,
+            data_dir,
             validation_split=0.2,
             subset="training",
             seed=123,
@@ -124,7 +120,7 @@ class TrainPR:
             batch_size=self.batch_size,
         )
         self.val_ds = tf.keras.utils.image_dataset_from_directory(
-            train_dir,
+            data_dir,
             validation_split=0.2,
             subset="validation",
             seed=123,
@@ -132,11 +128,10 @@ class TrainPR:
             batch_size=self.batch_size,
         )
 
-        self.test_ds = tf.keras.utils.image_dataset_from_directory(
-            test_dir,
-            image_size=self.image_size,
-            batch_size=self.batch_size,
-        )
+        self.model.class_names = self.train_ds.class_names
+        val_batches = tf.data.experimental.cardinality(self.val_ds)
+        self.test_ds = self.val_ds.take(val_batches // 2) # 10% of dataset
+        self.val_ds = self.val_ds.skip(val_batches // 2)  # 10% of dataset
 
     def preprocess(self):
         """
@@ -157,16 +152,14 @@ class TrainPR:
         self.val_ds = self.val_ds.cache().prefetch(buffer_size=tf.data.AUTOTUNE)
         self.test_ds = self.test_ds.cache().prefetch(buffer_size=tf.data.AUTOTUNE)
 
-    def build_model(self, num_classes: int):
+    def build_model(self):
         """
         Builds and compiles a MobileNetV2-based model for image classification.
-
-        Args:
-            num_classes (int): The number of output classes for the classification task.
 
         Returns:
             None
         """
+        num_classes = len(self.model.class_names)
         base_model = MobileNetV2(
             input_shape=self.image_size + (3,), include_top=False, weights="imagenet"
         )
@@ -252,6 +245,23 @@ class TrainPR:
 
         return history, history_fine
 
+    def predict(self):
+        """
+        Predicts classes for test dataset using the trained model.
+
+        Returns:
+        predicted_classes (numpy.array): Array of predicted classes.
+        test_classes (numpy.array): Array of true classes.
+        """
+        test_classes = np.array([])
+        predicted_classes = np.array([])
+
+        for x, y in self.test_ds:
+            predicted_classes = np.concatenate([predicted_classes, np.argmax(self.model(x, training=False), axis=-1)]).astype(int)
+            test_classes = np.concatenate([test_classes, y.numpy()]).astype(int)
+        
+        return predicted_classes, test_classes
+
     def save_model(self, filename):
         """
         Save the current model to a file.
@@ -296,13 +306,12 @@ if __name__ == "__main__":
 
     # Load data
     train_pr.load_data()
-    NUM_CLASSES = len(train_pr.train_ds.class_names)
 
     # Preprocess data
     train_pr.preprocess()
 
     # Build model
-    train_pr.build_model(num_classes=NUM_CLASSES)
+    train_pr.build_model()
     print(type(train_pr.model))
     print(train_pr.model.summary())
 
