@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import MagicMock, patch
 import tensorflow as tf
 import numpy as np
-from train_model import TrainPR
+from models.train_model import TrainPR
 
 @pytest.fixture
 def mock_model():
