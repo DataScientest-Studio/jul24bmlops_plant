@@ -2,7 +2,6 @@
 
 This project was made during the Data Scientist course of [Datascientest](https://datascientest.com/en) and used the datasets described below:
 - [PlantVillage Dataset](https://www.kaggle.com/datasets/abdallahalidev/plantvillage-dataset)
-- [Plant Seedlings Dataset](https://vision.eng.au.dk/plant-seedlings-dataset/)
 
 ## Team
 
