@@ -12,8 +12,7 @@ COPY requirements.txt .
 
 # Install the Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install pillow
-RUN pip install sqlalchemy psycopg2 alembic
+RUN pip install 'pydantic<2'
 
 # Copy the rest of the application code into the container
 COPY . .

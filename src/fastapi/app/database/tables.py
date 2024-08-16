@@ -1,6 +1,6 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, Text, TIMESTAMP, JSON
+from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, Text, TIMESTAMP, JSON, func, DateTime
 from sqlalchemy.orm import relationship
-from .database import Base
+from .db import Base
 
 class User(Base):
      __tablename__ = "users"
@@ -20,15 +20,43 @@ class User(Base):
      error_logs = relationship("ErrorLog", back_populates="user")
      api_request_logs = relationship("APIRequestLog", back_populates="user")
 
+# CREATE TABLE roles (
+#     role_id SERIAL PRIMARY KEY,
+#     role_name VARCHAR(50),
+#     role_description VARCHAR(255)
+# );
+
+
+# INSERT INTO roles (role_name, role_description) VALUES ('admin', 'Do the administrative activities');
+# INSERT INTO roles (role_name, role_description) VALUES ('ordinary', 'Do the less sensitive activities such as prediction');
 
 class Role(Base):
      __tablename__ = "roles"
 
      role_id = Column(Integer, primary_key=True, index=True)
      role_name = Column(String(50), unique=True, nullable=False)
-     description = Column(String(255), nullable=True)
+     role_description = Column(String(255), nullable=True)
 
      users = relationship("User", back_populates="role")
+
+class ABTestingResult(Base):
+     __tablename__ = "ab_testing_results"
+
+     test_id = Column(Integer, primary_key=True, index=True)
+     test_name = Column(String(255), nullable=False)
+     model_a_id = Column(Integer, ForeignKey("model_metadata.model_id"))
+     model_b_id = Column(Integer, ForeignKey("model_metadata.model_id"))
+     metric_name = Column(String(255), nullable=False)
+     # The metric being compared (e.g., accuracy, inference time).
+     model_a_metric_value = Column(Float, nullable=False)
+     model_b_metric_value = Column(Float, nullable=False)
+     winning_model_id = Column(Integer, ForeignKey("model_metadata.model_id"))
+     timestamp = Column(DateTime(timezone=True), server_default=func.now())
+
+     model_a = relationship("ModelMetadata", foreign_keys=[model_a_id], back_populates="ab_testing_results_a")
+     model_b = relationship("ModelMetadata", foreign_keys=[model_b_id], back_populates="ab_testing_results_b")
+     winning_model = relationship("ModelMetadata", foreign_keys=[winning_model_id], back_populates="ab_testing_winner")
+
 
 class ModelMetadata(Base):
      __tablename__ = "model_metadata"
@@ -59,24 +87,6 @@ class ModelMetadata(Base):
      ab_testing_results_b = relationship("ABTestingResult", foreign_keys=[ABTestingResult.model_b_id], back_populates="model_b")
      ab_testing_winner = relationship("ABTestingResult", foreign_keys=[ABTestingResult.winning_model_id], back_populates="winning_model")
 
-
-class ABTestingResult(Base):
-     __tablename__ = "ab_testing_results"
-
-     test_id = Column(Integer, primary_key=True, index=True)
-     test_name = Column(String(255), nullable=False)
-     model_a_id = Column(Integer, ForeignKey("model_metadata.model_id"))
-     model_b_id = Column(Integer, ForeignKey("model_metadata.model_id"))
-     metric_name = Column(String(255), nullable=False)
-     # The metric being compared (e.g., accuracy, inference time).
-     model_a_metric_value = Column(Float, nullable=False)
-     model_b_metric_value = Column(Float, nullable=False)
-     winning_model_id = Column(Integer, ForeignKey("model_metadata.model_id"))
-     timestamp = Column(DateTime(timezone=True), server_default=func.now())
-
-     model_a = relationship("ModelMetadata", foreign_keys=[model_a_id], back_populates="ab_testing_results_a")
-     model_b = relationship("ModelMetadata", foreign_keys=[model_b_id], back_populates="ab_testing_results_b")
-     winning_model = relationship("ModelMetadata", foreign_keys=[winning_model_id], back_populates="ab_testing_winner")
 
 
 class Prediction(Base):
