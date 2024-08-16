@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
+from datetime import datetime
 
 class Token(BaseModel):
     access_token: str
@@ -8,7 +9,7 @@ class Token(BaseModel):
 # use this for create and update
 class RoleBase(BaseModel):
     role_name: str
-    description: Optional[str] = None
+    role_description: Optional[str] = None
 
 class RoleResponse(RoleBase):
     role_id: int
