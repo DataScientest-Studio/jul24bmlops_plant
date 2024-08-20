@@ -8,3 +8,7 @@ python-jose[cryptography]
 sqlalchemy
 python-dotenv
 passlib[bcrypt]
+sqlalchemy
+psycopg2-binary
+pillow
+pydantic[email]

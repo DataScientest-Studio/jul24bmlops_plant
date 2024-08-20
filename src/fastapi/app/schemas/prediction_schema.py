@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from pydantic import BaseModel, EmailStr, Field
-from typing import Optional, List
+from typing import Optional, List, Dict
 from datetime import datetime
 
 from typing import List
@@ -22,7 +22,7 @@ class PredictionBase(BaseModel):
     model_id: int
     image_path: Optional[str] = None
     prediction: dict
-    top_5_prediction: Optional[dict] = None
+    top_5_prediction: Optional[List[Dict]] = None
     confidence: float
     feedback_given: Optional[bool] = False
     feedback_comment: Optional[str] = None
