@@ -176,13 +176,8 @@ class TrainPR:
         outputs = prediction_layer(x)
 
         self.model = tf.keras.Model(inputs, outputs)
-        self.model.compile(
-            optimizer=tf.keras.optimizers.Adam(learning_rate=self.base_learning_rate),
-            loss=tf.keras.losses.SparseCategoricalCrossentropy(),
-            metrics=["accuracy"],
-        )
 
-    def train_model(self):
+    def train_model(self, is_init: bool=True):
         """
         Trains the model using the training dataset and validates it using the validation dataset.
 
@@ -202,6 +197,9 @@ class TrainPR:
 
         The model is trained for a specified number of initial epochs, and the training history is returned.
 
+        Args:
+            is_init (bool): To distinguish between training and retraining mode.
+
         Returns:
             history: A History object. Its History.history attribute is a record of training loss values and metrics values at successive epochs, as well as validation loss values and validation metrics values.
             history_fine: A History object for the fine-tuning phase. Its History.history attribute is a record of training loss values and metrics values at successive epochs, as well as validation loss values and validation metrics values.
@@ -218,16 +216,23 @@ class TrainPR:
             ),
         ]
 
-        history = self.model.fit(
-            self.train_ds,
-            epochs=self.initial_epochs,
-            validation_data=self.val_ds,
-            callbacks=callbacks,
-        )
+        if is_init:
+            self.model.compile(
+                optimizer=tf.keras.optimizers.Adam(learning_rate=self.base_learning_rate),
+                loss=tf.keras.losses.SparseCategoricalCrossentropy(),
+                metrics=["accuracy"],
+            )
 
-        # Fine-tune model
-        for layer in self.model.layers[: self.fine_tune_at]:
-            layer.trainable = False
+            history = self.model.fit(
+                self.train_ds,
+                epochs=self.initial_epochs,
+                validation_data=self.val_ds,
+                callbacks=callbacks,
+            )
+
+            # Fine-tune model
+            for layer in self.model.layers[: self.fine_tune_at]:
+                layer.trainable = False
 
         self.model.compile(
             optimizer=tf.keras.optimizers.Adam(learning_rate=self.base_learning_rate),
@@ -235,7 +240,7 @@ class TrainPR:
             metrics=["accuracy"],
         )
 
-        history_fine = self.model.fit(
+        history = self.model.fit(
             self.train_ds,
             epochs=self.initial_epochs + self.fine_tune_epochs,
             initial_epoch=len(history.epoch),
@@ -243,15 +248,15 @@ class TrainPR:
             callbacks=callbacks,
         )
 
-        return history, history_fine
+        return history
 
     def predict(self):
         """
         Predicts classes for test dataset using the trained model.
 
         Returns:
-        predicted_classes (numpy.array): Array of predicted classes.
-        test_classes (numpy.array): Array of true classes.
+            predicted_classes (numpy.array): Array of predicted classes.
+            test_classes (numpy.array): Array of true classes.
         """
         test_classes = np.array([])
         predicted_classes = np.array([])
