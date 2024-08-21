@@ -48,7 +48,7 @@ def test_load_data(mocker):
     train_pr = TrainPR(image_size=(224, 224), batch_size=64, base_learning_rate=0.00005, fine_tune_at=50, initial_epochs=5, fine_tune_epochs=15)
     train_pr.model = MagicMock(spec=tf.keras.Model)
 
-    train_pr.load_data('dummy_path')
+    train_pr.load_data('dummy_path', seed=123)
 
     # Assert that the datasets are set correctly
     assert train_pr.train_ds == mock_image_dataset
@@ -92,15 +92,32 @@ def test_build_model(mocker, mock_model):
     assert train_pr.model == mock_model
     tf.keras.Model.assert_called_once()
 
+def test_update_hyperparameters():
+    train_pr = TrainPR(image_size=(224, 224), batch_size=64, base_learning_rate=0.00005, fine_tune_at=50, initial_epochs=5, fine_tune_epochs=15)
+    
+    train_pr.update_hyperparameters(batch_size=128, fine_tune_at=75)
+    
+    assert train_pr.batch_size == 128
+    assert train_pr.fine_tune_at == 75
+    assert train_pr.image_size == (224, 224)  # unchanged
+    assert train_pr.base_learning_rate == 0.00005  # unchanged
+
 def test_train_model(mocker, mock_model):
     mock_history = MagicMock()
     mocker.patch.object(mock_model, 'fit', return_value=mock_history)
     train_pr = TrainPR(image_size=(224, 224), batch_size=64, base_learning_rate=0.00005, fine_tune_at=50, initial_epochs=5, fine_tune_epochs=15)
     train_pr.model = mock_model
 
-    history, history_fine = train_pr.train_model()
-
+    # Test with is_init=True (Expecting 2 calls: one for initial training, one for fine-tuning)
+    history = train_pr.train_model(is_init=True)
     assert mock_model.fit.call_count == 2
+
+    # Reset the mock call count for the next test case
+    mock_model.fit.reset_mock()
+
+    # Test with is_init=False (Expecting 1 call: only for fine-tuning)
+    history = train_pr.train_model(is_init=False)
+    assert mock_model.fit.call_count == 1
 
 def test_predict(mocker):
     # Mock the model's prediction

@@ -202,7 +202,6 @@ class TrainPR:
 
         Returns:
             history: A History object. Its History.history attribute is a record of training loss values and metrics values at successive epochs, as well as validation loss values and validation metrics values.
-            history_fine: A History object for the fine-tuning phase. Its History.history attribute is a record of training loss values and metrics values at successive epochs, as well as validation loss values and validation metrics values.
         """
         callbacks = [
             tf.keras.callbacks.EarlyStopping(
@@ -233,6 +232,13 @@ class TrainPR:
             # Fine-tune model
             for layer in self.model.layers[: self.fine_tune_at]:
                 layer.trainable = False
+            
+            epochs = self.initial_epochs + self.fine_tune_epochs
+            init_epoch = len(history.epoch)
+        else:
+            history = None  # No history from initial training
+            epochs = self.fine_tune_epochs
+            init_epoch = 0
 
         self.model.compile(
             optimizer=tf.keras.optimizers.Adam(learning_rate=self.base_learning_rate),
@@ -242,8 +248,8 @@ class TrainPR:
 
         history = self.model.fit(
             self.train_ds,
-            epochs=self.initial_epochs + self.fine_tune_epochs,
-            initial_epoch=len(history.epoch),
+            epochs=epochs,
+            initial_epoch=init_epoch,
             validation_data=self.val_ds,
             callbacks=callbacks,
         )
