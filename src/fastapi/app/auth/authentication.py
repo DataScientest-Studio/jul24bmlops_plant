@@ -41,6 +41,9 @@ def signup(user: UserCreate, db: Session = Depends(get_db)):
           db_user = db.query(User).filter(User.username == user.username).first() or None
           if db_user:
                raise HTTPException(status_code=400, detail="Username already registered")
+          role = db.query(Role).filter(Role.role_id == user.role_id).first() or None
+          if role == 'admin':
+               raise HTTPException(status_code=400, detail="You are not allowed to register as admin")
           hashed_password = get_password_hash(user.password)  
           db_user = User(
                username=user.username,
