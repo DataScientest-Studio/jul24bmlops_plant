@@ -1,14 +1,13 @@
 '''
 script that performs the (re)training of the (target) model thus producing a new ([re]trained) model based on the output conditions of 'retrain_decider.py'
 '''
-# the command line 'mlflow ui [--port 5000]' launches the GUI of the (local) mlflow UI, accessible via browser
-# the respective current directory will automatically host the 'mlruns', the default local storage location for MLflow entities and artifacts
 
+import sys
+sys.path.insert(1, '../../')
 from src.models.train_model import TrainPR
 from src.models.predict_model import prdct, show_clsf_rprt, show_conf_mtrx
-from mlflow_utils import create_mlflow_xprmnt, dt_stamp
-import sys
-import mlflow, mlflow.tensorflow
+import mlflow
+from mlflow_utils import create_mlflow_xprmnt, dt_stamp, print_run_info, print_xprmnt_info
 
 # checking & fetching arguments (if any) of the command line 'python mlflow_train.py [-i] [-d <data_dir_paths>] [-t <model_file_path>]'
 isInit = '-i' in sys.argv
@@ -47,15 +46,21 @@ FINE_TUNE_AT = 100
 INITIAL_EPOCHS = 10
 FINE_TUNE_EPOCHS = 10
 SEED = 123
+MLFLOW_TRACK_DIR_PATH = '/home/alex/Prj/WB/DST/MLO/mlflow/track' # FIXME default value: "http://tracking-server:5000"
 
-# logs metrics, parameters, and models without the need for explicit log statements 
-mlflow.tensorflow.autolog() # TODO: logging datasets subject for discussion 
+## sets the default location for the 'mlruns' directory which represents the default local storage location for MLflow entities and artifacts 
+# one of the ways to launch a web interface that displays run data stored in the 'mlruns' directory is the command line 'mlflow ui --backend-store-uri <MLFLOW_TRACK_DIR_PATH>'
+mlflow.set_tracking_uri(MLFLOW_TRACK_DIR_PATH)
+
+## logs metrics, parameters, and models without the need for explicit log statements 
+# logs model signatures (describing model inputs and outputs), trained models (as MLflow model artifacts) & dataset information to the active fluent run
+mlflow.autolog()
 
 # creates and sets (as active) experiments & assigns attributes
 experiment_name = "init_param_TL_models" # FIXME
-tags = {"env": "dev", "version": "1.0.0", "priority": 1} # FIXME
-create_mlflow_xprmnt(experiment_name=experiment_name,
-                          tags=tags)
+xprmnt_tags = {"env": "dev", "version": "1.0.0", "priority": 1} # FIXME
+experiment_id = create_mlflow_xprmnt(experiment_name=experiment_name,
+                          tags=xprmnt_tags)
 mlflow.set_experiment(experiment_name)
 
 # sets and starts a new mlflow run within the set experiment
@@ -63,7 +68,8 @@ if isInit:
   run_name = "trun_" + dt_stamp() + "TS"
 else:
   run_name = "rtrun_" + dt_stamp() + "TS"
-with mlflow.start_run(run_name=run_name) as run:
+run_tags={"version": "v1", "priority": "P1"}
+with mlflow.start_run(run_name=run_name, tags=run_tags) as run:
   if isInit:
     # Create an instance of TrainPR
     train_pr = TrainPR(
@@ -120,3 +126,10 @@ with mlflow.start_run(run_name=run_name) as run:
   show_clsf_rprt(model_file_path, train_pr.test_ds)
   print("classification report:")
   show_conf_mtrx(model_file_path, train_pr.test_ds)
+
+# prints experiment data
+experiment = mlflow.get_experiment(experiment_id)
+print_xprmnt_info(experiment)
+
+# prints run data
+print_run_info(mlflow.get_run(run_id=run.info.run_id))
