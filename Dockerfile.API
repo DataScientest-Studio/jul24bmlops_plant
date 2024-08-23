@@ -4,6 +4,9 @@ FROM python:3.10-slim
 # Set environment variables to ensure output is shown in real-time
 ENV PYTHONUNBUFFERED=1
 
+# Set PYTHONPATH to include the /app directory, allowing imports to work correctly
+ENV PYTHONPATH=/app
+
 # Create and set the working directory
 WORKDIR /app
 
