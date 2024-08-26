@@ -1,7 +1,11 @@
+import argparse
+import sys
+
+import numpy as np
 import tensorflow as tf
 from tensorflow.keras import layers
 from tensorflow.keras.applications import MobileNetV2
-import numpy as np
+from sklearn.metrics import classification_report, confusion_matrix
 
 
 # hyperparameters:
@@ -44,6 +48,7 @@ class TrainPR:
             test_ds (Optional[tf.data.Dataset]): The test dataset, initialized as None.
         """
         self.model = None
+        self.class_names = ""
         if model_path:
             # print("Loading model from path:", model_path)  # Debug statement
             self.load_model(model_path)
@@ -55,7 +60,6 @@ class TrainPR:
             self.fine_tune_at = kwargs.get("fine_tune_at")
             self.initial_epochs = kwargs.get("initial_epochs")
             self.fine_tune_epochs = kwargs.get("fine_tune_epochs")
-            # self.model = None
         self.train_ds = None
         self.val_ds = None
         self.test_ds = None
@@ -71,6 +75,7 @@ class TrainPR:
         self.model = tf.keras.models.load_model(model_path)
         # print("Inside load_model, self.model =", self.model)  # Debug statement
         if self.model is not None:
+            self.class_names = self.model.class_names
             self.image_size = tuple(self.model.image_size)
             self.batch_size = self.model.batch_size
             self.base_learning_rate = self.model.base_learning_rate
@@ -98,13 +103,13 @@ class TrainPR:
         self.initial_epochs = kwargs.get("initial_epochs", self.initial_epochs)
         self.fine_tune_epochs = kwargs.get("fine_tune_epochs", self.fine_tune_epochs)
 
-    def load_data(self, data_dir: str, seed: int):
+    def load_data(self, data_dirs: list[str], seed: int):
         """
         Loads the training, validation, and test datasets from the specified directory.
 
         Args:
-            data_dir (str): The directory where the data is stored. It should contain
-                            'training' and 'test' subdirectories.
+            data_dir (list of str): A list of directories where the data is stored. Each directory should contain
+                                 'training' and 'test' subdirectories.
             seed (int): Used to make the behavior of the initializer deterministic.
 
         Sets:
@@ -112,28 +117,57 @@ class TrainPR:
             self.val_ds: The validation dataset, which is 20% of the data in the 'training' directory.
             self.test_ds: The test dataset, which is all the data in the 'test' directory.
         """
-        # Create a validation set from the training set (20% of training data)
-        self.train_ds = tf.keras.utils.image_dataset_from_directory(
-            data_dir,
-            validation_split=0.2,
-            subset="training",
-            seed=seed,
-            image_size=self.image_size,
-            batch_size=self.batch_size,
-        )
-        self.val_ds = tf.keras.utils.image_dataset_from_directory(
-            data_dir,
-            validation_split=0.2,
-            subset="validation",
-            seed=seed,
-            image_size=self.image_size,
-            batch_size=self.batch_size,
-        )
+        # Initialize lists to collect datasets from multiple directories
+        train_datasets = []
+        val_datasets = []
+        test_datasets = []
 
-        self.model.class_names = self.train_ds.class_names
-        val_batches = tf.data.experimental.cardinality(self.val_ds)
-        self.test_ds = self.val_ds.take(val_batches // 2) # 10% of dataset
-        self.val_ds = self.val_ds.skip(val_batches // 2)  # 10% of dataset
+        for data_dir in data_dirs:
+            # Load training and validation datasets from the current directory
+            # Create a validation set from the training set (20% of training data)
+            train_ds = tf.keras.utils.image_dataset_from_directory(
+                data_dir,
+                validation_split=0.2,
+                subset="training",
+                seed=seed,
+                image_size=self.image_size,
+                batch_size=self.batch_size,
+            )
+            val_ds = tf.keras.utils.image_dataset_from_directory(
+                data_dir,
+                validation_split=0.2,
+                subset="validation",
+                seed=seed,
+                image_size=self.image_size,
+                batch_size=self.batch_size,
+            )
+
+            # Add the loaded datasets to the respective lists
+            train_datasets.append(train_ds)
+            val_datasets.append(val_ds)
+
+            val_batches = tf.data.experimental.cardinality(val_ds)
+            test_ds = val_ds.take(val_batches // 2) # 10% of dataset
+            val_ds = val_ds.skip(val_batches // 2)  # 10% of dataset
+            test_datasets.append(test_ds)
+
+        # Concatenate all datasets from the different directories
+        self.train_ds = train_datasets[0]
+        for ds in train_datasets[1:]:
+            self.train_ds = self.train_ds.concatenate(ds)
+
+        self.val_ds = val_datasets[0]
+        for ds in val_datasets[1:]:
+            self.val_ds = self.val_ds.concatenate(ds)
+
+        self.test_ds = test_datasets[0]
+        for ds in test_datasets[1:]:
+            self.test_ds = self.test_ds.concatenate(ds)
+
+        # Set class names from the first directory (assuming all directories have the same classes)
+        # TODO: check the logic
+        if self.class_names == "":
+            self.class_names = self.train_ds.class_names
 
     def preprocess(self):
         """
@@ -161,10 +195,12 @@ class TrainPR:
         Returns:
             None
         """
-        num_classes = len(self.model.class_names)
+        num_classes = len(self.class_names)
         base_model = MobileNetV2(
             input_shape=self.image_size + (3,), include_top=False, weights="imagenet"
         )
+        # Freeze the base model
+        base_model.trainable = False
         global_average_layer = layers.GlobalAveragePooling2D()
         prediction_layer = layers.Dense(num_classes, activation="softmax")
 
@@ -229,7 +265,9 @@ class TrainPR:
                 callbacks=callbacks,
             )
 
+            self.model.trainable = True
             # Fine-tune model
+            # Freeze all the layers before the `fine_tune_at` layer
             for layer in self.model.layers[: self.fine_tune_at]:
                 layer.trainable = False
             
@@ -281,6 +319,7 @@ class TrainPR:
         filename (str): The path to the file where the model will be saved.
         """
         # Save the hyperparameters in the model object
+        self.model.class_names = self.class_names
         self.model.image_size = self.image_size
         self.model.batch_size = self.batch_size
         self.model.base_learning_rate = self.base_learning_rate
@@ -296,38 +335,104 @@ class TrainPR:
 # when the program is executed directly by the Python interpreter.
 # When the code in the file is imported as a module the code inside the if statement is not executed.
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Train or initialize a machine learning model with MLflow"
+    )
+
+    # Optional arguments
+    parser.add_argument(
+        "-d",
+        "--data",
+        type=str,
+        nargs='+',
+        help="Path to the data (required for both initialization and training)",
+    )
+    parser.add_argument(
+        "-i",
+        "--init",
+        action="store_true",
+        help="Initialize the model with the provided data",
+    )
+    parser.add_argument(
+        "-t",
+        "--train",
+        type=str,
+        help="Path to save the trained model (requires data path)",
+    )
+
+    args = parser.parse_args()
+
+    # Validate argument combinations
+    if args.init and args.train:
+        print("Error: -i/--init and -t/--train cannot be used together.")
+        sys.exit(1)
+
+    if args.init and not args.data:
+        print("Error: -i/--init requires a data path (-d/--data).")
+        sys.exit(1)
+
+    if args.train and not args.data:
+        print("Error: -t/--train requires a data path (-d/--data).")
+        sys.exit(1)
+
+    if not args.init and not args.train:
+        print("Error: You must specify either -i/--init or -t/--train.")
+        sys.exit(1)
+
     # Constants
     BATCH_SIZE = 32
     IMAGE_SIZE = (180, 180)
-    DATA_DIR = "data"
+    # argument for the script: -d/--data <data_path_list>
+    DATA_PATH_LIST = args.data # "../../data"
+    # argument for the script: -t/--train <model_path>
+    MODEL_FILENAME = args.train #"../../data"
     BASE_LEARNING_RATE = 0.0001
     FINE_TUNE_AT = 100
     INITIAL_EPOCHS = 10
     FINE_TUNE_EPOCHS = 10
+    SEED = 123
 
-    # Create an instance of TrainPR
-    train_pr = TrainPR(
-        image_size=IMAGE_SIZE,
-        batch_size=BATCH_SIZE,
-        base_learning_rate=BASE_LEARNING_RATE,
-        fine_tune_at=FINE_TUNE_AT,
-        initial_epochs=INITIAL_EPOCHS,
-        fine_tune_epochs=FINE_TUNE_EPOCHS,
-    )
+    if args.init:
+        # Create an instance of TrainPR
+        # argument for the script: -i/--init
+        train_pr = TrainPR(
+            image_size=IMAGE_SIZE,
+            batch_size=BATCH_SIZE,
+            base_learning_rate=BASE_LEARNING_RATE,
+            fine_tune_at=FINE_TUNE_AT,
+            initial_epochs=INITIAL_EPOCHS,
+            fine_tune_epochs=FINE_TUNE_EPOCHS,
+        )
+        # Load data
+        train_pr.load_data(DATA_PATH_LIST, SEED)  # The folder has to be 0
+    else:
+        # argument for the script: -t/--train and -d/--data
+        train_pr = TrainPR(MODEL_FILENAME)
 
-    # Load data
-    train_pr.load_data()
+        # Load data
+        # The information has to be taken from the DB (retrain_decider.py module)
+        train_pr.load_data(DATA_PATH_LIST, SEED)  # we need to merge the folders starting from
 
     # Preprocess data
     train_pr.preprocess()
 
     # Build model
     train_pr.build_model()
-    print(type(train_pr.model))
-    print(train_pr.model.summary())
 
-    # Train model
-    history, history_fine = train_pr.train_model()
+    if args.init:
+        # Training model
+        history = train_pr.train_model()
+    else:
+        # Retraining model
+        history = train_pr.train_model(is_init=False)
 
     # Save model
-    train_pr.save_model("models/" + "TL_180px_32b_20e_model.keras")
+    # Define the logic that will keep track of the models: we can use date, tags, etc.
+    train_pr.save_model("../../models/" + "TL_180px_32b_20e_model.keras")
+
+    # Prediction
+    predicted_classes, test_classes = train_pr.predict()
+
+    # Confusion Matrix
+    cm = confusion_matrix(test_classes, predicted_classes)
+    print(classification_report(test_classes, predicted_classes))
