@@ -9,29 +9,43 @@ from src.predict_model import prdct, show_clsf_rprt, show_conf_mtrx
 import mlflow
 from mlflow_utils import create_mlflow_xprmnt, dt_stamp, print_run_info, print_xprmnt_info
 
-# checking & fetching arguments (if any) of the command line 'python3 mlflow_train.py [-i] [-d <data_dir_paths>] [-m <model_file_path>]'
+# checking & fetching arguments (if any) of the command line 'python3 mlflow_train.py [-i] [-p <kwargs>] [-d <data_dir_paths>] [-m <model_file_path>]'
 isInit = '-i' in sys.argv
 iIdx = sys.argv.index("-i") if isInit else -1
+pIdx = sys.argv.index("-p") if ('-p' in sys.argv) else -1
 dIdx = sys.argv.index("-d") if ('-d' in sys.argv) else -1
 mIdx = sys.argv.index("-m") if ('-m' in sys.argv) else -1
 if isInit:
   assert iIdx == 1
-  if dIdx > 0:
-    assert (len(sys.argv) > (dIdx + 1)) & (dIdx > iIdx)
-    if mIdx > 0:
-      assert (len(sys.argv) > (mIdx + 1)) & (mIdx > dIdx)
-elif dIdx > 0:
-  assert len(sys.argv) > (dIdx + 1)
-  if mIdx > 0:
-    assert (len(sys.argv) > dIdx) & (mIdx > dIdx)
+  assert (dIdx + mIdx) == (-1 + -1)
+  if pIdx > 0:
+    assert len(sys.argv) > (pIdx + 1)
+else:
+  assert dIdx > 0
+  assert mIdx > (dIdx + 1)
+  assert len(sys.argv) > (mIdx + 1)
+  if pIdx > 0:
+    assert dIdx > (pIdx + 1)
+kwargs_lst = [] # list of 'key=value' pairs for updating (hyper)parameters
+keys_lst = []
+values_lst = []
+if pIdx > 0:
+  kwargs_lst = [sys.argv[i] for i in range(len(sys.argv)) if (i > pIdx) if (i < dIdx)] if dIdx > 0 else \
+    [sys.argv[i] for i in range(len(sys.argv)) if (i > pIdx)]
+  assert all('=' in el for el in kwargs_lst)
+  for el in kwargs_lst:
+    el_splt_lst = el.split("=")
+    keys_lst.append(el_splt_lst[0])
+    values_lst.append(el_splt_lst[1])
+  kwargs_dict = dict(zip(keys_lst, values_lst))
 data_dir_path_lst = [] # list of directory paths to the target datasets
-if dIdx > 0:
-  data_dir_path_lst = [sys.argv[i] for i in range(len(sys.argv)) if (i > dIdx) if (i < mIdx)] if mIdx > 0 else \
-    [sys.argv[i] for i in range(len(sys.argv)) if (i > dIdx)]
 model_file_path_ = '' # file path to the target model used for retraining (redundant for the training mode i.e. command line flag '-i')
+if dIdx > 0:
+  data_dir_path_lst = [sys.argv[i] for i in range(len(sys.argv)) if (i > dIdx) if (i < mIdx)]
 if mIdx > 0:
   model_file_path_ = sys.argv[mIdx + 1]
 
+print("-p args:\n", kwargs_dict)
 print("-d args:\n", data_dir_path_lst)
 print("-m arg:\n", model_file_path_)
 
@@ -59,7 +73,10 @@ mlflow.set_tracking_uri(MLFLOW_TRACK_DIR_PATH)
 mlflow.autolog()
 
 # creates and sets (as active) experiments & assigns attributes
-experiment_name = "init_param_TL_models"
+if pIdx == -1:
+  experiment_name = "init_param_TL_models"
+else:
+  experiment_name = "modi_param_TL_models"
 xprmnt_tags = {"env": "dev", "version": "1.0.0", "priority": 1} # FIXME
 experiment_id = create_mlflow_xprmnt(experiment_name=experiment_name,
                           tags=xprmnt_tags)
@@ -70,7 +87,7 @@ if isInit:
   run_name = "trun_" + dt_stamp() + "TS"
 else:
   run_name = "rtrun_" + dt_stamp() + "TS"
-run_tags={"version": "v1", "priority": "P1"}
+run_tags={"version": "v1", "priority": "P1"} # FIXME
 with mlflow.start_run(run_name=run_name, tags=run_tags) as run:
   if isInit:
     # Create an instance of TrainPR
@@ -82,10 +99,10 @@ with mlflow.start_run(run_name=run_name, tags=run_tags) as run:
         initial_epochs=INITIAL_EPOCHS,
         fine_tune_epochs=FINE_TUNE_EPOCHS,
     )
+    if pIdx > 0:
+      train_pr.update_hyperparameters(**kwargs_dict)
     # Load data
     train_pr.load_data(data_dirs=init_data_dir_path_)
-    # FIXME: for 'isInit' case, since 'model' object is 'None', no attributes are given and thus cannot receive assigned values
-    # FIXME: generally, 'model' attributes need to be reconsidered & remastered
   else:
     train_pr = TrainPR(model_path=model_file_path_,
         image_size=IMAGE_SIZE,
@@ -95,24 +112,18 @@ with mlflow.start_run(run_name=run_name, tags=run_tags) as run:
         initial_epochs=INITIAL_EPOCHS,
         fine_tune_epochs=FINE_TUNE_EPOCHS,
                        )
+    if pIdx > 0:
+      train_pr.update_hyperparameters(**kwargs_dict)
     # Load data
     # NOTE: ideally, the information needs to be taken from the DB ('retrain_decider.py' module)
-    train_pr.load_data(data_dirs=data_dir_path_lst)  
-    # FIXME: since 'load_data()' populates 'class_names' from 'train_ds' of 'data_dir', the new (added) dataset alone cannot be used without its code adjustment
+    train_pr.load_data(data_dirs=data_dir_path_lst)
 
   # preprocesses the data (in fact, just caches & prefetches)
   train_pr.preprocess()
 
-  # builds the model (essentially, stacks up the layers)
-  train_pr.build_model()
-  # FIXME: since 'build_data()' uses the size of the populated-via-'load_data()' 'class_names' attribute for shaping of the 'prediction_layer', its code needs adjustment
-
   if isInit:
     # trains the model
     history = train_pr.train_model()
-    # FIXME: 'base_model.trainable = True' has to be put before the for loop that freezes layers up to 'FINE_TUNE_AT'
-    # FIXME: 'initial_epoch=len(history.epoch)' is vulnerable for the 'not isInit' case since in this case 'history' is not-yet-defined
-    # FIXME: better to avoid 'initial_epoch' for 'not isInit' cases
   else:
     # retrains the model
     history = train_pr.train_model(is_init=False)
@@ -124,10 +135,11 @@ with mlflow.start_run(run_name=run_name, tags=run_tags) as run:
   # saves the (re)trained model
   model_file_path = MODEL_DIR_PATH + "TL_" + mode + \
     dt_stamp() + "TS_" + \
-      str(train_pr.image_size[0]) + "px_" + \
-        str(train_pr.batch_size) + "b_" + \
-          str(train_pr.fine_tune_epochs) + "fte_" + \
-            "model.keras"
+      str(len(train_pr.class_names)) + 'cls_' + \
+        str(train_pr.image_size[0]) + "px_" + \
+          str(train_pr.batch_size) + "btc_" + \
+            str(train_pr.fine_tune_epochs) + "fte_" + \
+              "model.keras"
   train_pr.save_model(model_file_path)
 
   # Prediction (on the target [test] dataset)

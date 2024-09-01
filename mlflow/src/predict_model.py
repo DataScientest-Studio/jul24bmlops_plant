@@ -74,7 +74,7 @@ def show_clsf_rprt(true_cls: np.ndarray, pred_cls: np.ndarray, cls_nms: list[str
     lbl_true_cls = np.array(cls_nms)[true_cls]
     lbl_pred_cls = np.array(cls_nms)[pred_cls]
     print("classification report:")
-    print(classification_report(lbl_true_cls, lbl_pred_cls))
+    print(classification_report(lbl_true_cls, lbl_pred_cls, labels=np.unique(lbl_pred_cls), zero_division=0))
 
 def show_conf_mtrx(true_cls: np.ndarray, pred_cls: np.ndarray) -> None:
     """

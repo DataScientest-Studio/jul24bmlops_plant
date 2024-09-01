@@ -1,6 +1,8 @@
 import argparse
 import sys
-
+import os
+# 3 = (tensorflow) INFO, WARNING, and ERROR messages are not printed - these are mostly CUDA/GPU-related (irrelevant) issues
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import layers
@@ -49,21 +51,18 @@ class TrainPR:
             test_ds (Optional[tf.data.Dataset]): The test dataset, initialized as None.
         """
         self.train_ds = None
-        self.class_names = None
+        self.class_names = []
         self.val_ds = None
         self.test_ds = None
         self.model = None
         self.seed = 123
         self.validation_split = 0.2
+        self.val_tst_split_enum = 1
         self.val_tst_split = 2
-        self.num_classes = 38
+        assert self.val_tst_split_enum < self.val_tst_split
         self.chnls = (3,)
         self.dropout_rate = 0.2
         self.init_weights = "imagenet"
-        self.patience_EarlyStopping = 10
-        self.patience_ReduceLROnPlateau = 3
-        self.factor_ReduceLROnPlateau = 0.2
-        self.cooldown_ReduceLROnPlateau = 5
         if model_path:
             # print("Loading model from path:", model_path)  # Debug statement
             self.load_model(model_path)
@@ -97,13 +96,28 @@ class TrainPR:
                     - fine_tune_at (int)
                     - initial_epochs (int)
                     - fine_tune_epochs (int)
+                    - seed (int)
+                    - validation_split (float)
+                    - val_tst_split_enum (int)
+                    - val_tst_split (int)
+                    - chnls (tuple)
+                    - dropout_rate (float)
+                    - init_weights (str)
         """
         self.image_size = kwargs.get("image_size", self.image_size)
-        self.batch_size = kwargs.get("batch_size", self.batch_size)
-        self.base_learning_rate = kwargs.get("base_learning_rate", self.base_learning_rate)
-        self.fine_tune_at = kwargs.get("fine_tune_at", self.fine_tune_at)
-        self.initial_epochs = kwargs.get("initial_epochs", self.initial_epochs)
-        self.fine_tune_epochs = kwargs.get("fine_tune_epochs", self.fine_tune_epochs)
+        self.batch_size = int(kwargs.get("batch_size", self.batch_size))
+        self.base_learning_rate = float(kwargs.get("base_learning_rate", self.base_learning_rate))
+        self.fine_tune_at = int(kwargs.get("fine_tune_at", self.fine_tune_at))
+        self.initial_epochs = int(kwargs.get("initial_epochs", self.initial_epochs))
+        self.fine_tune_epochs = int(kwargs.get("fine_tune_epochs", self.fine_tune_epochs))
+        self.seed = int(kwargs.get("seed", self.seed))
+        self.validation_split = float(kwargs.get("validation_split", self.validation_split))
+        self.val_tst_split_enum = int(kwargs.get("val_tst_split_enum", self.val_tst_split_enum))
+        self.val_tst_split = int(kwargs.get("val_tst_split", self.val_tst_split))
+        assert self.val_tst_split_enum < self.val_tst_split
+        self.chnls = kwargs.get("chnls", self.chnls)
+        self.dropout_rate = float(kwargs.get("dropout_rate", self.dropout_rate))
+        self.init_weights = kwargs.get("init_weights", self.init_weights)
 
     def load_data(self, data_dirs: list[str]):
         """
@@ -134,7 +148,7 @@ class TrainPR:
                 image_size=self.image_size,
                 batch_size=self.batch_size,
             )
-            if len(train_ds.class_names) == self.num_classes:
+            if len(train_ds.class_names) > len(self.class_names):
                 self.class_names = train_ds.class_names
 
             val_ds = tf.keras.utils.image_dataset_from_directory(
@@ -147,14 +161,12 @@ class TrainPR:
             )
 
             val_batches = tf.data.experimental.cardinality(val_ds)
-            test_ds = val_ds.take(val_batches // self.val_tst_split) # 10% of dataset
-            val_ds = val_ds.skip(val_batches // self.val_tst_split)  # 10% of dataset
+            test_ds = val_ds.take((self.val_tst_split_enum * val_batches) // self.val_tst_split)
+            val_ds = val_ds.skip((self.val_tst_split_enum * val_batches) // self.val_tst_split)
             # Add the loaded datasets to the respective lists
             train_datasets.append(train_ds)
             val_datasets.append(val_ds)
             test_datasets.append(test_ds)
-
-        assert len(self.class_names) == self.num_classes
 
         # Concatenate all datasets from the different directories
         self.train_ds = train_datasets[0]
@@ -215,21 +227,7 @@ class TrainPR:
 
     def train_model(self, is_init: bool=True):
         """
-        Trains the model using the training dataset and validates it using the validation dataset.
-
-        This method sets up two callbacks:
-        1. EarlyStopping: Stops training when the validation accuracy has stopped improving for 10 epochs.
-        - monitor: Metric to be monitored ('val_accuracy').
-        - patience: Number of epochs with no improvement after which training will be stopped.
-        - verbose: Verbosity mode.
-        - restore_best_weights: Whether to restore model weights from the epoch with the best value of the monitored quantity.
-
-        2. ReduceLROnPlateau: Reduces the learning rate when the validation accuracy has stopped improving.
-        - monitor: Metric to be monitored ('val_accuracy').
-        - factor: Factor by which the learning rate will be reduced.
-        - patience: Number of epochs with no improvement after which learning rate will be reduced.
-        - verbose: Verbosity mode.
-        - cooldown: Number of epochs to wait before resuming normal operation after learning rate has been reduced.
+        Builds, compiles & trains the model using the training dataset and validates it using the validation dataset.
 
         The model is trained for a specified number of initial epochs, and the training history is returned.
 
@@ -239,23 +237,26 @@ class TrainPR:
         Returns:
             history: A History object. Its History.history attribute is a record of training loss values and metrics values at successive epochs, as well as validation loss values and validation metrics values.
         """
-        callbacks = [
-            tf.keras.callbacks.EarlyStopping(
-                monitor="val_accuracy",
-                patience=self.patience_EarlyStopping,
-                verbose=1,
-                restore_best_weights=True,
-            ),
-            tf.keras.callbacks.ReduceLROnPlateau(
-                monitor="val_accuracy", 
-                factor=self.factor_ReduceLROnPlateau, 
-                patience=self.patience_ReduceLROnPlateau, 
-                verbose=1, 
-                cooldown=self.cooldown_ReduceLROnPlateau
-            ),
-        ]
 
         if is_init:
+            num_classes = len(self.class_names)
+            base_model = MobileNetV2(
+                input_shape=self.image_size + self.chnls, include_top=False, weights=self.init_weights
+            )
+            # Freeze the base model
+            base_model.trainable = False
+            global_average_layer = layers.GlobalAveragePooling2D()
+            prediction_layer = layers.Dense(num_classes, activation="softmax")
+
+            inputs = tf.keras.Input(shape=self.image_size + self.chnls)
+            x = tf.keras.applications.mobilenet_v2.preprocess_input(inputs)
+            x = base_model(x, training=False)
+            x = global_average_layer(x)
+            x = layers.Dropout(self.dropout_rate)(x)
+            outputs = prediction_layer(x)
+
+            self.model = tf.keras.Model(inputs, outputs)
+
             self.model.compile(
                 optimizer=tf.keras.optimizers.Adam(learning_rate=self.base_learning_rate),
                 loss=tf.keras.losses.SparseCategoricalCrossentropy(),
@@ -266,34 +267,26 @@ class TrainPR:
                 self.train_ds,
                 epochs=self.initial_epochs,
                 validation_data=self.val_ds,
-                callbacks=callbacks,
             )
             
             epochs = self.initial_epochs + self.fine_tune_epochs
             init_epoch = len(history.epoch)
+
+            base_model.trainable = True
+            # Fine-tune model
+            # Freeze all the layers before the `fine_tune_at` layer
+            for layer in base_model.layers[: self.fine_tune_at]:
+                layer.trainable = False
         else:
             history = None  # No history from initial training
             epochs = self.fine_tune_epochs
             init_epoch = 0
-
-        self.model.trainable = True
-        # Fine-tune model
-        # Freeze all the layers before the `fine_tune_at` layer
-        for layer in self.model.layers[: self.fine_tune_at]:
-            layer.trainable = False
-
-        self.model.compile(
-            optimizer=tf.keras.optimizers.Adam(learning_rate=self.base_learning_rate),
-            loss=tf.keras.losses.SparseCategoricalCrossentropy(),
-            metrics=["accuracy"],
-        )
 
         history = self.model.fit(
             self.train_ds,
             epochs=epochs,
             initial_epoch=init_epoch,
             validation_data=self.val_ds,
-            callbacks=callbacks,
         )
 
         return history
@@ -315,7 +308,7 @@ class TrainPR:
         
         return predicted_classes, test_classes
 
-    def save_model(self, filename):
+    def save_model(self, filename: str):
         """
         Save the current model to a file.
 
