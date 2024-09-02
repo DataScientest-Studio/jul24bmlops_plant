@@ -11,7 +11,7 @@ passlib[bcrypt]
 sqlalchemy
 psycopg2-binary
 pillow
-pydantic[email]
+pydantic
 pytest
 pytest-asyncio
 httpx

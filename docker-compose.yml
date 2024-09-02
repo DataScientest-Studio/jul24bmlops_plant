@@ -1,41 +1,98 @@
 version: '3.8'
 
 services:
-  web:
+  # Authentication Service
+  auth:
     build:
-      context: .
-      dockerfile: Dockerfile.API
-    container_name: API
-    command: ["uvicorn", "API.app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+      context: ./api_auth
+    container_name: api_auth
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
     volumes:
-      - .:/app
+      - ./api_auth:/app
     ports:
-      - "8000:8000"
+      - "8001:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres_user:postgres_password@db:5432/postgres_db
+      - PYTHONPATH=/app
     depends_on:
       - db
-    environment:
-      - DATABASE_URL=postgresql://postgres:password@db:5432/postgres
-      - PYTHONPATH=/app
     networks:
       - plant_network
 
+  # Prediction Service
+  prediction:
+    build:
+      context: ./api_prediction
+    container_name: api_prediction
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    volumes:
+      - ./api_prediction:/app
+    ports:
+      - "8002:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres_user:postgres_password@db:5432/postgres_db
+      - PYTHONPATH=/app
+    depends_on:
+      - db
+    networks:
+      - plant_network
+
+  # Training Service
+  training:
+    build:
+      context: ./api_training
+    container_name: api_training
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    volumes:
+      - ./api_training:/app
+    ports:
+      - "8003:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres_user:postgres_password@db:5432/postgres_db
+      - PYTHONPATH=/app
+    depends_on:
+      - db
+    networks:
+      - plant_network
+
+  # Database Management Service
+  db_management:
+    build:
+      context: ./api_db
+    container_name: api_db
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    volumes:
+      - ./api_db:/app
+    ports:
+      - "8004:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres_user:postgres_password@db:5432/postgres_db
+      - PYTHONPATH=/app
+    depends_on:
+      - db
+    networks:
+      - plant_network
+
+  # Database Service
   db:
     image: postgres:latest
     container_name: db
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres_user
+      POSTGRES_PASSWORD: postgres_password
+      POSTGRES_DB: postgres_db
     ports:
       - "5432:5432"
     volumes:
-      - ./db:/var/lib/postgresql/data
+      - ./db_raw:/var/lib/postgresql/data
     networks:
       - plant_network
 
 networks:
   plant_network:
+    driver: bridge
 
 volumes:
   db:
     driver: local
+
