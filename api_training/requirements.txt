@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+# tensorflow
+# keras
+sqlalchemy
+python-dotenv
+pydantic
+psycopg2-binary
+python-multipart

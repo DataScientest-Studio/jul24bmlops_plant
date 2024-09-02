@@ -1,0 +1,85 @@
+# in this version of docker-compose.yml the components are separated and which separation of concern
+# principle is applied and the the database centralized and all the components interact with it using exposed APIs.
+version: "3.8"
+
+services:
+  # Authentication Service
+  auth:
+    build:
+      context: ./api_auth
+    container_name: api_auth
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    volumes:
+      - ./api_auth:/app
+    ports:
+      - "8001:8000"
+    depends_on:
+      - db_management
+    networks:
+      - plant_network
+
+  # Prediction Service
+  prediction:
+    build:
+      context: ./api_prediction
+    container_name: api_prediction
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    volumes:
+      - ./api_prediction:/app
+    ports:
+      - "8002:8000"
+    depends_on:
+      - db_management
+    networks:
+      - plant_network
+
+  # Training Service
+  training:
+    build:
+      context: ./api_training
+    container_name: api_training
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    volumes:
+      - ./api_training:/app
+    ports:
+      - "8003:8000"
+    depends_on:
+      - db_management
+    networks:
+      - plant_network
+
+  # Database Management Service
+  db_management:
+    build:
+      context: ./api_db
+    container_name: api_db
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    volumes:
+      - ./api_db:/app
+    ports:
+      - "8004:8000"
+    networks:
+      - plant_network
+
+  # Database Service for Centralized Management
+  db:
+    image: postgres:latest
+    container_name: db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: central_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./db:/var/lib/postgresql/data
+    networks:
+      - plant_network
+
+networks:
+  plant_network:
+    driver: bridge
+
+volumes:
+  db:
+    driver: local
