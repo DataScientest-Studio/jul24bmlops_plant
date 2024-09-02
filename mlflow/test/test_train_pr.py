@@ -1,10 +1,12 @@
+import sys
+sys.path.insert(1, '../')
 import pytest
 from unittest.mock import MagicMock, patch
-from models.train_model import TrainPR
+from src.train_model import TrainPR
 
 @pytest.fixture
 def mock_train_pr():
-    with patch('models.train_model.tf.keras.models.load_model') as mock_load_model:
+    with patch('src.train_model.tf.keras.models.load_model') as mock_load_model:
         mock_load_model.return_value = MagicMock()  # Mock the model
         train_pr = TrainPR(model_path="mock_model_path")
         # We mock the `load_model` method of the `TrainPR` instance
@@ -16,7 +18,7 @@ def test_init_with_model_path(mock_train_pr):
     # No need to check `assert_called_once_with` here since we mock `load_model` explicitly in the fixture
 
 def test_load_model():
-    with patch('models.train_model.tf.keras.models.load_model') as mock_load_model:
+    with patch('src.train_model.tf.keras.models.load_model') as mock_load_model:
         mock_load_model.return_value = MagicMock()
         train_pr = TrainPR(model_path="mock_model_path")
         # Now `load_model` should have been called once during initialization
