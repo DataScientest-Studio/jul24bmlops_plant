@@ -61,13 +61,9 @@ RUN pip install /app/pr_model-0.1.0-py3-none-any.whl
 # Copy the application source code (if needed)
 COPY --from=builder /app/model/mlflow_train.py /app/
 
-# Copy the installed dependencies and application code from the builder stage
-# COPY --from=builder /app/.venv /app/.venv
-# COPY --from=builder /app/src/mlflow_train.py /app
+# Expose ports for MLFlow and FastAPI
+EXPOSE 5000 8000
 
-# Expose port (if needed, for example, if you're running a web server)
-EXPOSE 5000
-
-# Command to run the application
-# CMD ["python", "mlflow_train.py"]
+# Command to run both MLFlow and FastAPI
+# CMD ["sh", "-c", "mlflow ui --host 0.0.0.0 --port 5000 & uvicorn mlflow_train:app --host 0.0.0.0 --port 8000"]
 CMD ["python"]
