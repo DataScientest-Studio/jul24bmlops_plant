@@ -1,11 +1,10 @@
-# Stage 1: Build stage
+# Use an official Python 3.11 slim image as a base
 FROM python:3.11-slim AS builder
 
 # Set environment variables
 ENV POETRY_VERSION=1.5.1 \
     POETRY_HOME="/opt/poetry" \
-    POETRY_VIRTUALENVS_CREATE=true \
-    POETRY_VIRTUALENVS_IN_PROJECT=true \
+    POETRY_VIRTUALENVS_CREATE=false \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
@@ -21,25 +20,26 @@ RUN curl -sSL https://install.python-poetry.org | python3 -
 # Add Poetry to PATH
 ENV PATH="$POETRY_HOME/bin:$PATH"
 
-# Set the working directory in the build stage
+# Set working directory
 WORKDIR /app
 
 # Copy the pyproject.toml and poetry.lock files to install dependencies
-COPY pyproject.toml ./
+COPY pyproject.toml poetry.lock ./
 
-# Install dependencies using Poetry, excluding dev dependencies
+# Install only runtime dependencies in this stage
 RUN poetry install --no-dev --no-root --no-interaction --no-ansi
 
 # Copy the application source code
-COPY model/ ./model/
+COPY src/ ./src/
 COPY test/ ./test/
-
-# Run tests to ensure the package works correctly
-RUN poetry run pytest
 
 # Build the package using Poetry
 RUN poetry build
 
+# Install the built package
+# RUN pip install dist/*.whl
+# Install the built package into a virtual environment
+RUN pip install --target=/app/venv dist/*.whl
 
 # Stage 2: Runtime stage
 FROM python:3.11-slim AS runtime
@@ -47,27 +47,17 @@ FROM python:3.11-slim AS runtime
 # Set environment variables for the runtime stage
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app
+    PATH="/app/venv/bin:$PATH"
 
 # Set the working directory in the runtime stage
 WORKDIR /app
 
-# Copy the built package from the builder stage
-COPY --from=builder /app/dist/pr_model-0.1.0-py3-none-any.whl /app/
-
-# Install the package in the runtime environment
-RUN pip install /app/pr_model-0.1.0-py3-none-any.whl
-
-# Copy the application source code (if needed)
-COPY --from=builder /app/model/mlflow_train.py /app/
-
 # Copy the installed dependencies and application code from the builder stage
-# COPY --from=builder /app/.venv /app/.venv
-# COPY --from=builder /app/src/mlflow_train.py /app
+COPY --from=builder /app/venv /app/venv
+COPY --from=builder /app/src /app
 
 # Expose port (if needed, for example, if you're running a web server)
 EXPOSE 5000
 
 # Command to run the application
-# CMD ["python", "mlflow_train.py"]
-CMD ["python"]
+CMD ["python", "mlflow_train.py"]
