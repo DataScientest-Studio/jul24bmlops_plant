@@ -1,0 +1,151 @@
+# in this version of docker-compose.yml the components are loosly coupled and all the principles of
+# micro services and software engineering are followed strictly. since there is an instance of database
+# for every components
+version: "3.8"
+
+services:
+  # Authentication Service
+  auth:
+    build:
+      context: ./api_auth
+    container_name: api_auth
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    volumes:
+      - ./api_auth:/app
+    ports:
+      - "8001:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@auth_db:5432/auth_db
+      - PYTHONPATH=/app
+    depends_on:
+      - auth_db
+    networks:
+      - plant_network
+
+  # Prediction Service
+  prediction:
+    build:
+      context: ./api_prediction
+    container_name: api_prediction
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    volumes:
+      - ./api_prediction:/app
+    ports:
+      - "8002:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@prediction_db:5432/prediction_db
+      - PYTHONPATH=/app
+    depends_on:
+      - prediction_db
+    networks:
+      - plant_network
+
+  # Training Service
+  training:
+    build:
+      context: ./api_training
+    container_name: api_training
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    volumes:
+      - ./api_training:/app
+    ports:
+      - "8003:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@training_db:5432/training_db
+      - PYTHONPATH=/app
+    depends_on:
+      - training_db
+    networks:
+      - plant_network
+
+  # Database Management Service
+  db_management:
+    build:
+      context: ./api_db
+    container_name: api_db
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    volumes:
+      - ./api_db:/app
+    ports:
+      - "8004:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@db_management_db:5432/db_management_db
+      - PYTHONPATH=/app
+    depends_on:
+      - db_management_db
+    networks:
+      - plant_network
+
+  # Authentication Service Database
+  auth_db:
+    image: postgres:latest
+    container_name: auth_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: auth_db
+    ports:
+      - "5433:5432" # Different port than default to avoid conflict
+    volumes:
+      - auth_db_data:/var/lib/postgresql/data
+    networks:
+      - plant_network
+
+  # Prediction Service Database
+  prediction_db:
+    image: postgres:latest
+    container_name: prediction_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: prediction_db
+    ports:
+      - "5434:5432" # Different port than default to avoid conflict
+    volumes:
+      - prediction_db_data:/var/lib/postgresql/data
+    networks:
+      - plant_network
+
+  # Training Service Database
+  training_db:
+    image: postgres:latest
+    container_name: training_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: training_db
+    ports:
+      - "5435:5432" # Different port than default to avoid conflict
+    volumes:
+      - training_db_data:/var/lib/postgresql/data
+    networks:
+      - plant_network
+
+  # Database Management Service Database
+  db_management_db:
+    image: postgres:latest
+    container_name: db_management_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: db_management_db
+    ports:
+      - "5436:5432" # Different port than default to avoid conflict
+    volumes:
+      - db_management_db_data:/var/lib/postgresql/data
+    networks:
+      - plant_network
+
+networks:
+  plant_network:
+    driver: bridge
+
+volumes:
+  auth_db_data:
+    driver: local
+  prediction_db_data:
+    driver: local
+  training_db_data:
+    driver: local
+  db_management_db_data:
+    driver: local
