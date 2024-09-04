@@ -1,6 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, Depends, status, Request, HTTPException
 from tensorflow.keras.preprocessing import image
-# from tensorflow.keras.preprocessing.image import img_to_array, load_img
 from tensorflow.keras.utils import load_img, img_to_array
 import numpy as np
 from io import BytesIO
@@ -21,10 +20,10 @@ router = APIRouter()
 @router.post("/predict", response_model=PredictionResponse)
 async def predict(
     file: UploadFile = File(...), 
-    token: str = Depends(get_token_from_request),  
+    # token: str = Depends(get_token_from_request),  
     db: Session = Depends(get_db)
 ):
-    current_user = await get_current_user(token)
+    # current_user = await get_current_user(token)
     
     try:
         # Prediction logic
@@ -43,10 +42,12 @@ async def predict(
             {"class_name": CLASS_NAMES[i], "confidence": float(f"{predictions[0][i]:.6f}")}
             for i in top_5_indices
         ]
+        print('value of top_5_indices')
+        print(top_5_indices)
 
         # Save to database
         db_prediction = Prediction(
-            user_id=current_user["user_id"],
+            # user_id=current_user["user_id"],
             image_path='image path goes here',  # Adjust as needed
             prediction={'predicted_class': predicted_class},
             top_5_prediction=top_5_predictions_dict,
@@ -73,10 +74,10 @@ async def predict(
 @router.post("/predictions/create/", response_model=PredictionBaseResponse)
 async def create_prediction(
     prediction: PredictionBase, 
-    token: str = Depends(get_token_from_request),  
+    # token: str = Depends(get_token_from_request),  
     db: Session = Depends(get_db)
 ):
-    current_user = await get_current_user(token)
+    # current_user = await get_current_user(token)
     try:
         db_prediction = Prediction(**prediction.dict(), user_id=current_user["user_id"])
         db.add(db_prediction)
@@ -91,12 +92,12 @@ async def create_prediction(
 @router.get("/predictions/", response_model=List[PredictionBaseResponse])
 async def read_all_predictions(
     skip: int = 0, limit: int = 100, 
-    token: str = Depends(get_token_from_request),  
+    # token: str = Depends(get_token_from_request),  
     db: Session = Depends(get_db)
 ):
     
     try:
-        current_admin_user = await get_current_admin_user(token)
+        # current_admin_user = await get_current_admin_user(token)
         list_response = db.query(Prediction).offset(skip).limit(limit).all()
         return list_response
     except Exception as e:
@@ -106,12 +107,12 @@ async def read_all_predictions(
 # Get Predictions for the current user
 @router.get("/predictions/me", response_model=List[PredictionBaseResponse])
 async def read_user_predictions(
-    token: str = Depends(get_token_from_request),  
+    # token: str = Depends(get_token_from_request),  
     db: Session = Depends(get_db)
 ):
     
     try:
-        current_user = await get_current_user(token)
+        # current_user = await get_current_user(token)
         list_response = db.query(Prediction).filter(Prediction.user_id == current_user["user_id"]).all()
         return list_response
     except Exception as e:
@@ -122,12 +123,12 @@ async def read_user_predictions(
 @router.get("/predictions/{prediction_id}", response_model=PredictionBaseResponse)
 async def read_prediction(
     prediction_id: int, 
-    token: str = Depends(get_token_from_request),  
+    # token: str = Depends(get_token_from_request),  
     db: Session = Depends(get_db)
 ):
     
     try:
-        current_user = await get_current_user(token)
+        # current_user = await get_current_user(token)
         db_prediction = db.query(Prediction).filter(Prediction.prediction_id == prediction_id).first()
         if db_prediction is None or (db_prediction.user_id != current_user["user_id"] and not current_user["is_admin"]):
             raise HTTPException(status_code=404, detail="Prediction not found")
@@ -142,12 +143,12 @@ async def read_prediction(
 @router.delete("/predictions/{prediction_id}", response_model=PredictionBaseResponse)
 async def delete_prediction(
     prediction_id: int, 
-    token: str = Depends(get_token_from_request),  
+    # token: str = Depends(get_token_from_request),  
     db: Session = Depends(get_db)
 ):
     
     try:
-        current_user = await get_current_user(token)
+        # current_user = await get_current_user(token)
         db_prediction = db.query(Prediction).filter(Prediction.prediction_id == prediction_id).first()
         if db_prediction is None or (db_prediction.user_id != current_user["user_id"] and not current_user["is_admin"]):
             raise HTTPException(status_code=404, detail="Prediction not found")

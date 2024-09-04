@@ -13,9 +13,9 @@ router = APIRouter()
 
 # Create ModelMetadata (Admin-only):
 @router.post("/models/", response_model=ModelMetadataResponse, status_code=status.HTTP_201_CREATED)
-async def create_model_metadata(model: ModelMetadataBase, db: Session = Depends(get_db), token: str = Depends(get_token_from_request)):
+async def create_model_metadata(model: ModelMetadataBase, db: Session = Depends(get_db)):
      try:
-          current_admin_user = await get_current_admin_user(token)
+          # current_admin_user = await get_current_admin_user(token)
           db_model = ModelMetadata(
                model_name=model.model_name,
                version=model.version,
@@ -44,11 +44,11 @@ async def create_model_metadata(model: ModelMetadataBase, db: Session = Depends(
 @router.get("/model/list/", response_model=List[ModelMetadataResponse])
 async def list_metadata(
      skip: int = 0, limit: int = 20, 
-     db: Session = Depends(get_db),
-     token: str = Depends(get_token_from_request)
+     db: Session = Depends(get_db)
+     # token: str = Depends(get_token_from_request)
      ):
      try:
-          current_admin_user = await get_current_admin_user(token)
+          # current_admin_user = await get_current_admin_user(token)
           list_response = db.query(ModelMetadata).offset(skip).limit(limit).all()
           return list_response
      except Exception as e:
@@ -56,9 +56,9 @@ async def list_metadata(
 
 # Read ModelMetadata (Any authenticated user):
 @router.get("/models/{the_model_id}", response_model=ModelMetadataResponse)
-async def read_model_metadata(the_model_id: int, db: Session = Depends(get_db), token: str = Depends(get_token_from_request)):
+async def read_model_metadata(the_model_id: int, db: Session = Depends(get_db)):
      try:
-          current_user = await get_current_user(token)
+          # current_user = await get_current_user(token)
           db_model = db.query(ModelMetadata).filter(ModelMetadata.the_model_id == the_model_id).first()
           if db_model is None:
                raise HTTPException(status_code=404, detail="Model not found")
@@ -70,9 +70,9 @@ async def read_model_metadata(the_model_id: int, db: Session = Depends(get_db), 
 
 # Update ModelMetadata (Admin-only):
 @router.put("/models/{the_model_id}", response_model=ModelMetadataResponse)
-async def update_model_metadata(the_model_id: int, model: ModelMetadataBase, db: Session = Depends(get_db), token: str = Depends(get_token_from_request)):
+async def update_model_metadata(the_model_id: int, model: ModelMetadataBase, db: Session = Depends(get_db)):
      try:
-          current_admin_user = await get_current_admin_user(token)
+          # current_admin_user = await get_current_admin_user(token)
           db_model = db.query(ModelMetadata).filter(ModelMetadata.the_model_id == the_model_id).first()
           if db_model is None:
                raise HTTPException(status_code=404, detail="Model not found")
@@ -88,9 +88,9 @@ async def update_model_metadata(the_model_id: int, model: ModelMetadataBase, db:
 
 # Delete ModelMetadata (Admin-only):
 @router.delete("/models/{the_model_id}")
-async def delete_model_metadata(the_model_id: int, db: Session = Depends(get_db), token: str = Depends(get_token_from_request)):
+async def delete_model_metadata(the_model_id: int, db: Session = Depends(get_db)):
      try:
-          current_admin_user = await get_current_admin_user(token)
+          # current_admin_user = await get_current_admin_user(token)
           db_model = db.query(ModelMetadata).filter(ModelMetadata.the_model_id == the_model_id).first()
           if db_model is None:
                raise HTTPException(status_code=404, detail="Model not found")

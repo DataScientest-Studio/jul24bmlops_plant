@@ -1,4 +1,5 @@
-import tensorflow as tf
+if not settings.TESTING:
+    import tensorflow as tf
 
 def train_model(training_data, epochs=10):
     

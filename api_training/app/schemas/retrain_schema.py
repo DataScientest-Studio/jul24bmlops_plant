@@ -38,7 +38,7 @@ class ABTestingResultBase(BaseModel):
     metric_name: str
     model_a_metric_value: float
     model_b_metric_value: float
-    winning_model_id: Optional[int] = None
+    winning_the_model_id: Optional[int] = None
 
 
 class ABTestingResultResponse(ABTestingResultBase):
