@@ -3,8 +3,7 @@ script that performs the (re)training of the (target) model thus producing a new
 '''
 
 import sys
-sys.path.insert(1, '../')
-from model.train_model import TrainPR, IMAGE_SIZE, BATCH_SIZE, BASE_LEARNING_RATE, FINE_TUNE_AT, INITIAL_EPOCHS, FINE_TUNE_EPOCHS
+from train_model import TrainPR, IMAGE_SIZE, BATCH_SIZE, BASE_LEARNING_RATE, FINE_TUNE_AT, INITIAL_EPOCHS, FINE_TUNE_EPOCHS
 from predict_model import prdct, show_clsf_rprt, show_conf_mtrx
 import mlflow
 from mlflow_utils import create_mlflow_xprmnt, dt_stamp, print_run_info, print_xprmnt_info

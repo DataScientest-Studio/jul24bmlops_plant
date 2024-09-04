@@ -1,15 +1,19 @@
-from fastapi import FastAPI, HTTPException, Query
-from pydantic import BaseModel, Field
+from fastapi import FastAPI, Query
+from pydantic import BaseModel
 from typing import List, Optional, Tuple
 import uvicorn
 import subprocess
+import sys
 from train_model import \
 SEED, VALIDATION_SPLIT, VAL_TST_SPLIT_ENUM, VAL_TST_SPLIT, CHNLS, DROPOUT_RATE, INIT_WEIGHTS, \
     IMAGE_SIZE, BATCH_SIZE, BASE_LEARNING_RATE, FINE_TUNE_AT, INITIAL_EPOCHS, FINE_TUNE_EPOCHS
 
 title = 'Training API'
 pthn = 'python3'
-scrpt = 'mlflow_train.py'
+f_path = sys.argv[0]
+d_path_end = f_path.rfind('/')
+d_path = sys.argv[0][:d_path_end + 1]
+scrpt = d_path + 'mlflow_train.py'
 i_flg = '-i'
 p_flg = '-p'
 d_flg = '-d'
