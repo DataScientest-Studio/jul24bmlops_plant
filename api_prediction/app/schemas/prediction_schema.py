@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List, Dict
 from datetime import datetime
 
@@ -30,8 +30,10 @@ class PredictionBase(BaseModel):
 class PredictionBaseResponse(PredictionBase):
     prediction_id: int
     predicted_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        from_attributes = True
+    # class Config:
+    #     from_attributes = True
 
 

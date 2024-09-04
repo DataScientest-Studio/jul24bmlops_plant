@@ -13,12 +13,12 @@ class ABTestingResult(Base):
     # The metric being compared (e.g., accuracy, inference time).
     model_a_metric_value = Column(Float, nullable=False)
     model_b_metric_value = Column(Float, nullable=False)
-    winning_model_id = Column(Integer, ForeignKey("model_metadata.the_model_id"))
+    winning_the_model_id = Column(Integer, ForeignKey("model_metadata.the_model_id"))
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
 
     model_a = relationship("ModelMetadata", foreign_keys=[model_a_id], back_populates="ab_testing_results_a")
     model_b = relationship("ModelMetadata", foreign_keys=[model_b_id], back_populates="ab_testing_results_b")
-    winning_model = relationship("ModelMetadata", foreign_keys=[winning_model_id], back_populates="ab_testing_winner")
+    winning_model = relationship("ModelMetadata", foreign_keys=[winning_the_model_id], back_populates="ab_testing_winner")
 
 
 
@@ -49,5 +49,5 @@ class ModelMetadata(Base):
     predictions = relationship("Prediction", back_populates="model")
     ab_testing_results_a = relationship("ABTestingResult", foreign_keys=[ABTestingResult.model_a_id], back_populates="model_a")
     ab_testing_results_b = relationship("ABTestingResult", foreign_keys=[ABTestingResult.model_b_id], back_populates="model_b")
-    ab_testing_winner = relationship("ABTestingResult", foreign_keys=[ABTestingResult.winning_model_id], back_populates="winning_model")
+    ab_testing_winner = relationship("ABTestingResult", foreign_keys=[ABTestingResult.winning_the_model_id], back_populates="winning_model")
 

@@ -9,3 +9,7 @@ python-multipart
 pydantic
 pydantic[email]
 python-multipart
+httpx
+# to test
+pytest-asyncio
+pytest

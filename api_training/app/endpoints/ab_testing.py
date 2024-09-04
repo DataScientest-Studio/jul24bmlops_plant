@@ -13,11 +13,11 @@ router = APIRouter()
 @router.post("/ab_testing_results/", response_model=ABTestingResultResponse)
 async def create_ab_testing_result(
      ab_testing_result: ABTestingResultBase, 
-     db: Session = Depends(get_db),
-     token: str = Depends(get_token_from_request)
+     db: Session = Depends(get_db)
+     # token: str = Depends(get_token_from_request)
      ):
      try:
-          current_admin_user = await get_current_admin_user(token)
+          # current_admin_user = await get_current_admin_user(token)
           db_ab_testing_result = ABTestingResult(**ab_testing_result.dict())
           db.add(db_ab_testing_result)
           db.commit()
@@ -32,11 +32,11 @@ async def create_ab_testing_result(
 @router.get("/ab_testing_results/", response_model=List[ABTestingResultResponse])
 async def read_ab_testing_results(
      skip: int = 0, limit: int = 100, 
-     db: Session = Depends(get_db),
-     token: str = Depends(get_token_from_request)
+     db: Session = Depends(get_db)
+     # token: str = Depends(get_token_from_request)
      ):
      try:
-          current_admin_user = await get_current_admin_user(token)
+          # current_admin_user = await get_current_admin_user(token)
           the_response = db.query(ABTestingResult).offset(skip).limit(limit).all()
           return the_response
      except HTTPException as http_ex:
@@ -49,11 +49,11 @@ async def read_ab_testing_results(
 @router.get("/ab_testing_results/{test_id}", response_model=ABTestingResultResponse)
 async def read_ab_testing_result(
      test_id: int, 
-     db: Session = Depends(get_db),
-     token: str = Depends(get_token_from_request)
+     db: Session = Depends(get_db)
+     # token: str = Depends(get_token_from_request)
      ):
      try:
-          current_admin_user = await get_current_admin_user(token)
+          # current_admin_user = await get_current_admin_user(token)
           db_ab_testing_result = db.query(ABTestingResult).filter(ABTestingResult.test_id == test_id).first()
           if db_ab_testing_result is None:
                raise HTTPException(status_code=404, detail="AB Testing Result not found")
@@ -67,11 +67,11 @@ async def read_ab_testing_result(
 @router.delete("/ab_testing_results/{test_id}", response_model=ABTestingResultResponse)
 async def delete_ab_testing_result(
      test_id: int, 
-     db: Session = Depends(get_db),
-     token: str = Depends(get_token_from_request)
+     db: Session = Depends(get_db)
+     # token: str = Depends(get_token_from_request)
      ):
      try:
-          current_admin_user = await get_current_admin_user(token)
+          # current_admin_user = await get_current_admin_user(token)
           db_ab_testing_result = db.query(ABTestingResult).filter(ABTestingResult.test_id == test_id).first()
           if db_ab_testing_result is None:
                raise HTTPException(status_code=404, detail="AB Testing Result not found")

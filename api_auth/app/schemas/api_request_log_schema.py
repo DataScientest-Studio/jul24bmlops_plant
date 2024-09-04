@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List
 from datetime import datetime
 
@@ -17,6 +17,8 @@ class APIRequestLogBase(BaseModel):
 class APIRequestLogResponse(APIRequestLogBase):
     request_id: int
     timestamp: datetime
+    
+    model_config = ConfigDict(from_attributes=True)  # Use ConfigDict instead
 
-    class Config:
-        from_attributes = True
+    # class Config:
+    #     from_attributes = True

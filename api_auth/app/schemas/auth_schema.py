@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from typing import Optional
 from datetime import datetime
 
@@ -13,18 +13,28 @@ class RoleBase(BaseModel):
 
 class RoleResponse(RoleBase):
     role_id: int
+    
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        from_attributes = True
+    # class Config:
+    #     from_attributes = True
 
+
+# class UserBase(BaseModel):
+#     username: str = Field(..., max_length=255)
+#     hashed_password: str = Field(..., max_length=255)
+#     email: Optional[EmailStr] = None
+#     disabled: Optional[bool] = False
+#     role_id: int
 
 class UserBase(BaseModel):
-    username: str = Field(..., max_length=255)
-    hashed_password: str = Field(..., max_length=255)
+    username: str
+    hashed_password: str
     email: Optional[EmailStr] = None
     disabled: Optional[bool] = False
     role_id: int
 
+    model_config = ConfigDict(from_attributes=True)
 
 class UserCreate(UserBase):
     password: str = Field(..., min_length=6)
@@ -38,6 +48,9 @@ class UserResponse(UserBase):
     user_id: int
     created_at: datetime
     updated_at: Optional[datetime]
+    
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        from_attributes = True
+    # class Config:
+    #     from_attributes = True
+    

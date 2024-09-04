@@ -8,3 +8,7 @@ python-dotenv
 pydantic
 pillow
 psycopg2-binary
+# To test
+httpx
+pytest-asyncio
+pytest

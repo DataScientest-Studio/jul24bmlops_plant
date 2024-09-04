@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List
 from datetime import datetime
 
@@ -14,6 +14,8 @@ class ErrorLogBase(BaseModel):
 class ErrorLogResponse(ErrorLogBase):
      error_id: int
      timestamp: datetime
+     
+     model_config = ConfigDict(from_attributes=True)
 
-     class Config:
-          from_attributes = True
+     # class Config:
+     #      from_attributes = True

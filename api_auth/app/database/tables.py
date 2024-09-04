@@ -9,7 +9,7 @@ class User(Base):
      username = Column(String(255), unique=True, nullable=False)
      hashed_password = Column(String(255), nullable=False)
      email = Column(String(255), unique=True, nullable=True)
-     role_id = Column(Integer, ForeignKey("roles.role_id"), nullable=False)  # Associate user with a role
+     role_id = Column(Integer, ForeignKey("roles.role_id"), nullable=True)  # Associate user with a role
      disabled = Column(Boolean, default=True, nullable=True)
      created_at = Column(DateTime(timezone=True), server_default=func.now())
      updated_at = Column(TIMESTAMP, default="now()")
