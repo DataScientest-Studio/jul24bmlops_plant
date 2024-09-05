@@ -10,9 +10,17 @@ def mock_train_pr():
         train_pr.load_model = MagicMock()  # Mock the `load_model` method
         return train_pr
 
-def test_init_with_model_path(mock_train_pr):
-    assert mock_train_pr.model is None  # Model should initially be None
-    # No need to check `assert_called_once_with` here since we mock `load_model` explicitly in the fixture
+def test_init_with_model_path():
+    # Initialize without model_path to ensure model is None initially
+    train_pr = TrainPR()
+    assert train_pr.model is None  # Model should be None at initialization
+
+    # Now test the case where a model_path is provided and the model is loaded
+    with patch('train_model.tf.keras.models.load_model') as mock_load_model:
+        mock_load_model.return_value = MagicMock()  # Mock the loaded model
+        train_pr_with_model = TrainPR(model_path="mock_model_path")
+        mock_load_model.assert_called_once_with("mock_model_path")
+        assert train_pr_with_model.model is not None  # Model should no longer be None after loading
 
 def test_load_model():
     with patch('model.train_model.tf.keras.models.load_model') as mock_load_model:
