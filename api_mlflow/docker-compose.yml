@@ -9,6 +9,8 @@ services:
     environment:
       - MLFLOW_TRACK_DIR_PATH=/app/MLFlow
       - MLFLOW_MODEL_DIR_PATH=/app/Model
+      - IMAGES_DIR_PATH=/app/Data
     volumes:
       - ./mlflow_data:/app/MLFlow  # Persistent volume for MLFlow tracking data
       - ./model_data:/app/Model    # Persistent volume for model data
+      - ./image_data:/app/Data    # Persistent volume for image data

@@ -160,6 +160,7 @@ class TrainPR:
         val_datasets = []
         test_datasets = []
 
+        print("________________",data_dirs, len(data_dirs))
         for data_dir in data_dirs:
             # Load training and validation datasets from the current directory
             # Create a validation set from the training set (20% of training data)
@@ -183,30 +184,43 @@ class TrainPR:
                 batch_size=self.batch_size,
             )
 
+            print("Load 1")
             val_batches = tf.data.experimental.cardinality(val_ds)
+            print(f"val_batches {val_batches}")
             test_ds = val_ds.take(
                 (self.val_tst_split_enum * val_batches) // self.val_tst_split
+            )
+            print(
+                f"self.val_tst_split_enum * val_batches {self.val_tst_split_enum * val_batches}"
             )
             val_ds = val_ds.skip(
                 (self.val_tst_split_enum * val_batches) // self.val_tst_split
             )
+            print(f"self.val_tst_split {self.val_tst_split}")
             # Add the loaded datasets to the respective lists
+            print(train_ds)
             train_datasets.append(train_ds)
+            print(len(train_datasets), val_ds)
             val_datasets.append(val_ds)
+            print(len(val_datasets), test_ds)
             test_datasets.append(test_ds)
-
+            print(len(test_datasets))
+        print("Load 2")
         # Concatenate all datasets from the different directories
         self.train_ds = train_datasets[0]
         for ds in train_datasets[1:]:
             self.train_ds = self.train_ds.concatenate(ds)
 
+        print("Load 3")
         self.val_ds = val_datasets[0]
         for ds in val_datasets[1:]:
             self.val_ds = self.val_ds.concatenate(ds)
 
+        print("Load 4")
         self.test_ds = test_datasets[0]
         for ds in test_datasets[1:]:
             self.test_ds = self.test_ds.concatenate(ds)
+        print("End Load")
 
     def preprocess(self):
         """

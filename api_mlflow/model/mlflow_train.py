@@ -103,18 +103,21 @@ def parse_hyper_list(hyper_list):
     return hyper_dict
 
 
-def first_training(init, hyper, data):
+def first_training(hyper, data):
     if hyper:
         train_pr = TrainPR(**parse_hyper_list(hyper))
     else:
         train_pr = TrainPR()
 
+    print("Debug 1")
     # Load the images
     train_pr.load_data(data)
 
+    print("Debug 2")
     # preprocesses the data (in fact, just caches & prefetches)
     train_pr.preprocess()
 
+    print("Debug 3")
     # trains the model
     history = train_pr.train_model()
 
@@ -168,8 +171,9 @@ if __name__ == "__main__":
     ## sets the default location for the 'mlruns' directory which represents the default local storage location for MLflow entities and artifacts
     # one of the ways to launch a web interface that displays run data stored in the 'mlruns' directory is the command line 'mlflow ui --backend-store-uri <MLFLOW_TRACK_DIR_PATH>'
     # Read the MLFLOW_TRACK_DIR_PATH environment variable
-    mlflow_tracking_dir = os.getenv("MLFLOW_TRACK_DIR_PATH", "/home/lume/projects/py/test/mlflow")
-    mlflow_model_dir = os.getenv("MLFLOW_MODEL_DIR_PATH", "/home/lume/projects/py/test/gg")
+    mlflow_tracking_dir = os.getenv("MLFLOW_TRACK_DIR_PATH", "/app/MLFlow")
+    mlflow_model_dir = os.getenv("MLFLOW_MODEL_DIR_PATH", "/app/Model")
+    model_images_dir = os.getenv("IMAGES_DIR_PATH", "/app/Data")
     mlflow.set_tracking_uri(mlflow_tracking_dir)
 
     ## logs metrics, parameters, and models without the need for explicit log statements
@@ -194,7 +198,7 @@ if __name__ == "__main__":
     run_tags = {"version": "v1", "priority": "P1"} # FIXME
     with mlflow.start_run(run_name=run_name, tags=run_tags) as run:
         if args.init:
-            first_training(args.init, args.hyper, args.data)
+            first_training(args.hyper, args.data)
         else:
             re_training(args.train, args.hyper, args.data)
         
