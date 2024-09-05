@@ -79,7 +79,7 @@ async def create_prediction(
 ):
     # current_user = await get_current_user(token)
     try:
-        db_prediction = Prediction(**prediction.dict(), user_id=current_user["user_id"])
+        # db_prediction = Prediction(**prediction.dict(), user_id=current_user["user_id"])
         db.add(db_prediction)
         db.commit()
         db.refresh(db_prediction)
@@ -99,6 +99,8 @@ async def read_all_predictions(
     try:
         # current_admin_user = await get_current_admin_user(token)
         list_response = db.query(Prediction).offset(skip).limit(limit).all()
+        # if len(list_response) == 0:
+        #     return []
         return list_response
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to retrieve predictions: {str(e)}")
@@ -113,7 +115,8 @@ async def read_user_predictions(
     
     try:
         # current_user = await get_current_user(token)
-        list_response = db.query(Prediction).filter(Prediction.user_id == current_user["user_id"]).all()
+        # list_response = db.query(Prediction).filter(Prediction.user_id == current_user["user_id"]).all()
+        list_response = db.query(Prediction).all()
         return list_response
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to retrieve user predictions: {str(e)}")
@@ -130,8 +133,8 @@ async def read_prediction(
     try:
         # current_user = await get_current_user(token)
         db_prediction = db.query(Prediction).filter(Prediction.prediction_id == prediction_id).first()
-        if db_prediction is None or (db_prediction.user_id != current_user["user_id"] and not current_user["is_admin"]):
-            raise HTTPException(status_code=404, detail="Prediction not found")
+        # if db_prediction is None or (db_prediction.user_id != current_user["user_id"] and not current_user["is_admin"]):
+        #     raise HTTPException(status_code=404, detail="Prediction not found")
         return db_prediction
     except HTTPException as http_ex:
         raise http_ex
@@ -150,8 +153,8 @@ async def delete_prediction(
     try:
         # current_user = await get_current_user(token)
         db_prediction = db.query(Prediction).filter(Prediction.prediction_id == prediction_id).first()
-        if db_prediction is None or (db_prediction.user_id != current_user["user_id"] and not current_user["is_admin"]):
-            raise HTTPException(status_code=404, detail="Prediction not found")
+        # if db_prediction is None or (db_prediction.user_id != current_user["user_id"] and not current_user["is_admin"]):
+        #     raise HTTPException(status_code=404, detail="Prediction not found")
         db.delete(db_prediction)
         db.commit()
         return db_prediction

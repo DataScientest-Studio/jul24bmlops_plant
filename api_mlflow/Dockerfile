@@ -65,5 +65,5 @@ COPY --from=builder /app/model/mlflow_train.py /app/
 EXPOSE 5000 8000
 
 # Command to run both MLFlow and FastAPI
-# CMD ["sh", "-c", "mlflow ui --host 0.0.0.0 --port 5000 & uvicorn mlflow_train:app --host 0.0.0.0 --port 8000"]
-CMD ["python"]
+CMD ["sh", "-c", "mlflow ui --host 0.0.0.0 --port 5000 & uvicorn mlflow_train:app --host 0.0.0.0 --port 8000"]
+

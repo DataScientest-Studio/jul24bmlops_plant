@@ -73,6 +73,7 @@ services:
     networks:
       - plant_network
 
+
   # Database Service
   db:
     image: postgres:latest
@@ -87,6 +88,7 @@ services:
       - ./db_data:/var/lib/postgresql/data
     networks:
       - plant_network
+
 
 networks:
   plant_network:

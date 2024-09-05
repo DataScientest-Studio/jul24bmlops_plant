@@ -1,0 +1,45 @@
+
+train endpoint:
+curl -X POST http://localhost:8000/trigger-train
+
+training with hyperparameter:
+curl -X POST http://localhost:8000/trigger-train-tune -H "Content-Type: application/json" -d '{
+  "image_size": [224, 224],
+  "batch_size": 32,
+  "base_learning_rate": 0.001,
+  "fine_tune_at": 100,
+  "initial_epochs": 10,
+  "fine_tune_epochs": 5,
+  "seed": 42,
+  "validation_split": 0.2,
+  "val_tst_split_enum": 1,
+  "val_tst_split": 0.1,
+  "chnls": [3],
+  "dropout_rate": 0.5,
+  "init_weights": "imagenet"
+}'
+
+
+retraining without hyperparameter:
+curl -X POST "http://localhost:8000/trigger-retrain?paths=%2Fdata%2Fretrain1&paths=%2Fdata%2Fretrain2&model_file_path=%2Fmodels%2Finitial_model.h5"
+
+retraining with hyperparameter:
+curl -X POST "http://localhost:8000/trigger-retrain-tune?paths=%2Fdata%2Fretrain1&paths=%2Fdata%2Fretrain2&model_file_path=%2Fmodels%2Ffine_tuned_model.h5" -H "Content-Type: application/json" -d '{
+  "image_size": [224, 224],
+  "batch_size": 32,
+  "base_learning_rate": 0.0005,
+  "fine_tune_at": 150,
+  "initial_epochs": 20,
+  "fine_tune_epochs": 10,
+  "seed": 123,
+  "validation_split": 0.3,
+  "val_tst_split_enum": 2,
+  "val_tst_split": 0.15,
+  "chnls": [3],
+  "dropout_rate": 0.4,
+  "init_weights": "imagenet"
+}'
+
+
+
+
