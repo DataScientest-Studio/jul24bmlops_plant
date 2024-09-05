@@ -102,7 +102,6 @@ services:
     networks:
       - plant_network
 
-
 networks:
   plant_network:
     driver: bridge
