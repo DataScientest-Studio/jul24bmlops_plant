@@ -17,8 +17,8 @@ class PredictionResponse(BaseModel):
 
 # use this for create
 class PredictionBase(BaseModel):
-    user_id: int
-    the_model_id: int
+    user_id: Optional[int] = None
+    the_model_id: Optional[int] = None
     image_path: Optional[str] = None
     prediction: dict
     top_5_prediction: Optional[List[Dict]] = None

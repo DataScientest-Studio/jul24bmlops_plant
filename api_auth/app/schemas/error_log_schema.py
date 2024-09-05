@@ -7,7 +7,7 @@ from datetime import datetime
 class ErrorLogBase(BaseModel):
      error_type: Optional[str] = None
      error_message: str
-     the_model_id: int
+     the_model_id: Optional[int] = None
      user_id: int
 
 
