@@ -45,8 +45,8 @@ class ModelMetadata(Base):
     created_at = Column(TIMESTAMP, default="now()")
     updated_at = Column(TIMESTAMP, default="now()")
     
-    error_logs = relationship("ErrorLog", back_populates="model")
-    predictions = relationship("Prediction", back_populates="model")
+    # error_logs = relationship("ErrorLog", back_populates="model")
+    # predictions = relationship("Prediction", back_populates="model")
     ab_testing_results_a = relationship("ABTestingResult", foreign_keys=[ABTestingResult.model_a_id], back_populates="model_a")
     ab_testing_results_b = relationship("ABTestingResult", foreign_keys=[ABTestingResult.model_b_id], back_populates="model_b")
     ab_testing_winner = relationship("ABTestingResult", foreign_keys=[ABTestingResult.winning_the_model_id], back_populates="winning_model")
