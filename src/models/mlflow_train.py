@@ -15,7 +15,7 @@ from train_model import TrainPR
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Train or initialize a machine learning model with MLflow"
+        description="Train a Plant Recognition ML model with MLflow"
     )
 
     # Optional arguments

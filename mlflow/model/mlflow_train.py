@@ -1,165 +1,173 @@
-'''
+"""
 script that performs the (re)training of the (target) model thus producing a new ([re]trained) model based on the output conditions of 'retrain_decider.py'
-'''
+"""
 
+import argparse
 import sys
-# sys.path.insert(1, '../')
-from model.train_model import TrainPR
-from predict_model import prdct, show_clsf_rprt, show_conf_mtrx
+import os
+from datetime import datetime
+
 import mlflow
-from mlflow_utils import create_mlflow_xprmnt, dt_stamp, print_run_info, print_xprmnt_info
+# from predict_model import prdct, show_clsf_rprt, show_conf_mtrx
+from train_model import TrainPR
 
-# checking & fetching arguments (if any) of the command line 'python3 mlflow_train.py [-i] [-p <kwargs>] [-d <data_dir_paths>] [-m <model_file_path>]'
-isInit = '-i' in sys.argv
-iIdx = sys.argv.index("-i") if isInit else -1
-pIdx = sys.argv.index("-p") if ('-p' in sys.argv) else -1
-dIdx = sys.argv.index("-d") if ('-d' in sys.argv) else -1
-mIdx = sys.argv.index("-m") if ('-m' in sys.argv) else -1
-if isInit:
-  assert iIdx == 1
-  assert (dIdx + mIdx) == (-1 + -1)
-  if pIdx > 0:
-    assert len(sys.argv) > (pIdx + 1)
-else:
-  assert dIdx > 0
-  assert mIdx > (dIdx + 1)
-  assert len(sys.argv) > (mIdx + 1)
-  if pIdx > 0:
-    assert dIdx > (pIdx + 1)
-kwargs_lst = [] # list of 'key=value' pairs for updating (hyper)parameters
-keys_lst = []
-values_lst = []
-if pIdx > 0:
-  kwargs_lst = [sys.argv[i] for i in range(len(sys.argv)) if (i > pIdx) if (i < dIdx)] if dIdx > 0 else \
-    [sys.argv[i] for i in range(len(sys.argv)) if (i > pIdx)]
-  assert all('=' in el for el in kwargs_lst)
-  for el in kwargs_lst:
-    el_splt_lst = el.split("=")
-    keys_lst.append(el_splt_lst[0])
-    values_lst.append(el_splt_lst[1])
-  kwargs_dict = dict(zip(keys_lst, values_lst))
-data_dir_path_lst = [] # list of directory paths to the target datasets
-model_file_path_ = '' # file path to the target model used for retraining (redundant for the training mode i.e. command line flag '-i')
-if dIdx > 0:
-  data_dir_path_lst = [sys.argv[i] for i in range(len(sys.argv)) if (i > dIdx) if (i < mIdx)]
-if mIdx > 0:
-  model_file_path_ = sys.argv[mIdx + 1]
 
-print("-p args:\n", kwargs_dict)
-print("-d args:\n", data_dir_path_lst)
-print("-m arg:\n", model_file_path_)
-
-## Constants
-BATCH_SIZE = 32
-IMAGE_SIZE = (180, 180)
-# argument for the command line option '-d <data_dir_paths>'
-INIT_DATA_DIR_PATH = "/home/alex/Prj/WB/DST/MLO/data/subs/0" # FIXME initial value: "../../data"
-MODEL_DIR_PATH = "/home/alex/Prj/WB/DST/MLO/mods/" # FIXME initial value: "../../models/"
-BASE_LEARNING_RATE = 0.0001
-FINE_TUNE_AT = 100
-INITIAL_EPOCHS = 10
-FINE_TUNE_EPOCHS = 10
-MLFLOW_TRACK_DIR_PATH = '/home/alex/Prj/WB/DST/MLO/mlflow/track' # FIXME
-
-init_data_dir_path_ = []
-init_data_dir_path_.append(INIT_DATA_DIR_PATH)
-
-## sets the default location for the 'mlruns' directory which represents the default local storage location for MLflow entities and artifacts 
-# one of the ways to launch a web interface that displays run data stored in the 'mlruns' directory is the command line 'mlflow ui --backend-store-uri <MLFLOW_TRACK_DIR_PATH>'
-mlflow.set_tracking_uri(MLFLOW_TRACK_DIR_PATH)
-
-## logs metrics, parameters, and models without the need for explicit log statements 
-# logs model signatures (describing model inputs and outputs), trained models (as MLflow model artifacts) & dataset information to the active fluent run
-mlflow.autolog()
-
-# creates and sets (as active) experiments & assigns attributes
-if pIdx == -1:
-  experiment_name = "init_param_TL_models"
-else:
-  experiment_name = "modi_param_TL_models"
-xprmnt_tags = {"env": "dev", "version": "1.0.0", "priority": 1} # FIXME
-experiment_id = create_mlflow_xprmnt(experiment_name=experiment_name,
-                          tags=xprmnt_tags)
-mlflow.set_experiment(experiment_name)
-
-# sets and starts a new mlflow run within the set experiment
-if isInit:
-  run_name = "trun_" + dt_stamp() + "TS"
-else:
-  run_name = "rtrun_" + dt_stamp() + "TS"
-run_tags={"version": "v1", "priority": "P1"} # FIXME
-with mlflow.start_run(run_name=run_name, tags=run_tags) as run:
-  if isInit:
-    # Create an instance of TrainPR
-    train_pr = TrainPR(
-        image_size=IMAGE_SIZE,
-        batch_size=BATCH_SIZE,
-        base_learning_rate=BASE_LEARNING_RATE,
-        fine_tune_at=FINE_TUNE_AT,
-        initial_epochs=INITIAL_EPOCHS,
-        fine_tune_epochs=FINE_TUNE_EPOCHS,
+def cli_parameters():
+    parser = argparse.ArgumentParser(
+        description="Train a Plant Recognition ML model with MLflow"
     )
-    if pIdx > 0:
-      train_pr.update_hyperparameters(**kwargs_dict)
-    # Load data
-    train_pr.load_data(data_dirs=init_data_dir_path_)
-  else:
-    train_pr = TrainPR(model_path=model_file_path_,
-        image_size=IMAGE_SIZE,
-        batch_size=BATCH_SIZE,
-        base_learning_rate=BASE_LEARNING_RATE,
-        fine_tune_at=FINE_TUNE_AT,
-        initial_epochs=INITIAL_EPOCHS,
-        fine_tune_epochs=FINE_TUNE_EPOCHS,
-                       )
-    if pIdx > 0:
-      train_pr.update_hyperparameters(**kwargs_dict)
-    # Load data
-    # NOTE: ideally, the information needs to be taken from the DB ('retrain_decider.py' module)
-    train_pr.load_data(data_dirs=data_dir_path_lst)
 
-  # preprocesses the data (in fact, just caches & prefetches)
-  train_pr.preprocess()
+    # Optional arguments
+    parser.add_argument(
+        "-d",
+        "--data",
+        type=str,
+        help="Path to the data (required for both initialization and training)",
+    )
+    parser.add_argument(
+        "-i",
+        "--init",
+        action="store_true",
+        help="Initialize the model with the provided data",
+    )
+    parser.add_argument(
+        "-p",
+        "--hyper",
+        nargs='+',
+        help="hyperparameter tuning (for either training or retraining - possible for both)",
+    )
+    parser.add_argument(
+        "-t",
+        "--train",
+        type=str,
+        help="Path to load the trained model (requires data path)",
+    )
 
-  if isInit:
+    args = parser.parse_args()
+
+    # Define all allowed combinations
+    allowed_combinations = [
+        (0, 1, 1, 1),
+        (0, 1, 0, 1),
+        (1, 0, 1, 1),
+        (1, 0, 0, 1)
+    ]
+
+    init_val = 1 if args.init else 0  # True -> 1, False -> 0
+    train_val = 1 if args.train is not None else 0  # Non-None -> 1, None -> 0
+    hyper_val = 1 if args.hyper else 0  # True -> 1, False -> 0
+    data_val = 1 if args.data is not None else 0  # Non-None -> 1, None -> 0
+
+    # Validate argument combinations
+    if (init_val, train_val, hyper_val, data_val) not in allowed_combinations:
+        print("Error: invalid combination of parameters.")
+        sys.exit(1)
+
+    return args
+
+
+def create_run_timestamp():
+    # Get the current date and time
+    now = datetime.now()
+    
+    # Format the date and time as RUN_YYMMDD_HH_MM_SEC
+    formatted_time = now.strftime("RUN_%y%m%d_%H_%M_%S")
+    
+    return formatted_time
+
+
+def create_mlflow_xprmnt(experiment_name: str, tags: dict[str,Any]) -> str:
+    """
+    creates a new mlflow experiment with the given name and tags
+    """
+    try:
+        experiment_id = mlflow.create_experiment(name=experiment_name, tags=tags)
+    except:
+        print(f"experiment {experiment_name} already exists")
+        experiment_id = mlflow.get_experiment_by_name(experiment_name).experiment_id
+
+    return experiment_id
+
+
+def parse_hyper_list(hyper_list):
+    hyper_dict = {}
+    for item in hyper_list:
+        key, value = item.split("=")
+        # Handle tuple values and cast them appropriately
+        try:
+            value = eval(value)  # Convert string representations of tuples or other types to their proper Python types
+        except:
+            pass  # If eval fails (e.g., for a string), just keep the value as is
+
+        hyper_dict[key] = value
+    return hyper_dict
+
+
+def first_training(init, hyper, data):
+    if hyper:
+        train_pr = TrainPR(**parse_hyper_list(hyper))
+    else:
+        train_pr = TrainPR()
+
+    # Load the images
+    train_pr.load_data(data)
+
+    # preprocesses the data (in fact, just caches & prefetches)
+    train_pr.preprocess()
+
     # trains the model
     history = train_pr.train_model()
-  else:
-    # retrains the model
-    history = train_pr.train_model(is_init=False)
 
-  if isInit:
-    mode = "t_"
-  else:
-    mode = "rt_"
-  # saves the (re)trained model
-  model_file_path = MODEL_DIR_PATH + "TL_" + mode + \
-    dt_stamp() + "TS_" + \
-      str(len(train_pr.class_names)) + 'cls_' + \
-        str(train_pr.image_size[0]) + "px_" + \
-          str(train_pr.batch_size) + "btc_" + \
+    # saves the (re)trained model
+    model_file_path = mlflow_model_dir + "TL_TR_" + \
+            create_run_timestamp().removeprefix("RUN") + "TS_" + \
+            str(len(train_pr.class_names)) + 'cls_' + \
+            str(train_pr.image_size[0]) + "px_" + \
+            str(train_pr.batch_size) + "btc_" + \
             str(train_pr.fine_tune_epochs) + "fte_" + \
-              "model.keras"
-  train_pr.save_model(model_file_path)
+            "model.keras"
+    train_pr.save_model(model_file_path)
 
-  # Prediction (on the target [test] dataset)
-  true_classes, predicted_classes = prdct(model_file_path, train_pr.test_ds)
+    return train_pr
 
-  # prints Confusion Matrix & Classification Report
-  show_clsf_rprt(true_classes, predicted_classes, train_pr.class_names)
-  show_conf_mtrx(true_classes, predicted_classes)
 
-# mlflow run finish line
-print("---------------------mlflow_run=fin---------------------")
+def re_training(train, hyper, data):
+    pass
 
-# prints experiment data
-experiment = mlflow.get_experiment(experiment_id)
-print("experiment data:")
-print_xprmnt_info(experiment)
 
-# prints run data
-print("run data:")
-print_run_info(mlflow.get_run(run_id=run.info.run_id))
+if __name__ == "__main__":
+    print("Paramters check")
+    args = cli_parameters()
 
-# fin
-print("**********************mlflow_train=fin**********************")
+    ## sets the default location for the 'mlruns' directory which represents the default local storage location for MLflow entities and artifacts
+    # one of the ways to launch a web interface that displays run data stored in the 'mlruns' directory is the command line 'mlflow ui --backend-store-uri <MLFLOW_TRACK_DIR_PATH>'
+    # Read the MLFLOW_TRACK_DIR_PATH environment variable
+    mlflow_tracking_dir = os.getenv("MLFLOW_TRACK_DIR_PATH", "/home/lume/projects/py/test/mlflow")
+    mlflow_model_dir = os.getenv("MLFLOW_MODEL_DIR_PATH", "/home/lume/projects/py/test/gg")
+    mlflow.set_tracking_uri(mlflow_tracking_dir)
+
+    ## logs metrics, parameters, and models without the need for explicit log statements
+    # logs model signatures (describing model inputs and outputs), trained models (as MLflow model artifacts) & dataset information to the active fluent run
+    mlflow.autolog()
+
+    experiment_name = "PR_model"
+    experiment_description = (
+        "This is the plant recognition project. "
+        "This experiment contains the images models for leafs."
+    )
+    experiment_tags = {
+        "project_name": "plant-recognition",
+        "team": "aal-ml",
+        "mlflow.note.content": experiment_description,
+    }
+    experiment_id = create_mlflow_xprmnt(experiment_name=experiment_name, tags=experiment_tags)
+    mlflow.set_experiment(experiment_name)
+
+    run_name = create_run_timestamp()
+    run_name = ("I" + run_name) if args.init else ("T" + run_name)
+    run_tags = {"version": "v1", "priority": "P1"} # FIXME
+    with mlflow.start_run(run_name=run_name, tags=run_tags) as run:
+        if args.init:
+            first_training(args.init, args.hyper, args.data)
+        else:
+            re_training(args.train, args.hyper, args.data)

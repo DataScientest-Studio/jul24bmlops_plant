@@ -1,10 +1,11 @@
-from fastapi import FastAPI, HTTPException, Query
-from pydantic import BaseModel, Field
+import subprocess
 from typing import List, Optional, Tuple
-import mlflow
-from train_model import TrainPR
 
-app = FastAPI()
+import uvicorn
+from fastapi import FastAPI, Query
+from pydantic import BaseModel, Field
+
+app = FastAPI(title="Plant Recognition API")
 
 # Define a Pydantic model for input validation
 class Hyperparameters(BaseModel):
@@ -25,73 +26,37 @@ class Hyperparameters(BaseModel):
 class PredictionInput(BaseModel):
     features: list
 
-# Endpoint to train the model
-# http://localhost:8000/train?paths=
+## Endpoints to train the (initial) model
+# with or without hyperparameter tuning
+# http://localhost:8000/train
 @app.post("/train")
 async def train_model(
     params: Optional[Hyperparameters] = None,
-    paths: Optional[List[str]] = Query(None, description="List of paths for training data"),
-    model_file_path: str = Query(..., description="File path for the model to retrain")):
-    try:
-        # Instance of the Model
-        train_and_log_model(params, paths, model_file_path)
-        return {"status": "Model trained and logged successfully"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    paths: List[str] = Query(..., description="List of paths for training data"),
+):
+    if params:
+        hyper_list = [f"{key}={value}" for key, value in params.model_dump().items()]
+        cmd_lst = ["python3", "model/mlflow_train.py", "-i", "-p"] + hyper_list
+        cmd_lst.extend(["-d"] + paths) # ./data/subs/0 or /home/lume/projects/py/test/data/subs/0
+    else:
+        cmd_lst = ["python3", "model/mlflow_train.py", "-i", "-d"] + paths # ./data/subs/0 or /home/lume/projects/py/test/data/subs/0
+    subprocess.run(cmd_lst)
 
-# Endpoint to make predictions using a logged model
-@app.post("/predict")
-async def predict(input: PredictionInput, model_name: str = "random_forest_model", stage: str = "None"):
-    pass
-    # try:
-        # Instance of the Model
-        # model = load_model(model_name, stage)
-        # prediction = model.predict([input.features])
-        # return {"prediction": prediction.tolist()}
-    # except Exception as e:
-    #     raise HTTPException(status_code=500, detail=str(e))
 
-# Endpoint to fetch model information (e.g., metrics, parameters)
-@app.get("/model_info/{model_name}")
-async def model_info(model_name: str, stage: str = "None"):
-    pass
-    # try:
-        # Instance of the Model
-        # model_uri = f"models:/{model_name}/{stage}"
-        # model_info = mlflow.get_run(model_uri)
-        # return {"model_info": model_info.data.to_dictionary()}
-    # except Exception as e:
-    #     raise HTTPException(status_code=500, detail=str(e))
-
-def train_and_log_model(params=None, paths=None, model_file_path=None):
-    print(f"Parameters: {params}")
-    print(f"Paths: {paths}")
-    print(f"Model File Path: {model_file_path}")
-    with mlflow.start_run(run_name="test_GG", tags={"dev": "LM"}) as run:
-        print("Debug 1")
-        train_pr = TrainPR()
-        print("Debug 2")
-        train_pr.load_data(model_file_path)
-        print("Debug 3")
+## Endpoints to retrain the model
+# without hyperparameter tuning
+# http://localhost:8000/retrain?paths=...&model_file_path=...
+@app.post("/retrain")
+async def retrain_model(
+    params: Optional[Hyperparameters] = None,
+    paths: List[str] = Query(..., description="List of paths for retraining data"),
+    model_file_path: str = Query(..., description="File path for the model to retrain")
+    ):
+    d_args_lst = paths
+    m_arg = model_file_path
+    cmd_lst = ["python3", "mlflow_train.py", "-d"] + d_args_lst + ["-t"] + [m_arg]
+    subprocess.run(cmd_lst)
 
 
 if __name__ == "__main__":
-    ## sets the default location for the 'mlruns' directory which represents the default local storage location for MLflow entities and artifacts 
-    # one of the ways to launch a web interface that displays run data stored in the 'mlruns' directory is the command line 'mlflow ui --backend-store-uri <MLFLOW_TRACK_DIR_PATH>'
-    mlflow.set_tracking_uri("/Volumes/data/Projects/py/model_test/data/training")
-
-    ## logs metrics, parameters, and models without the need for explicit log statements 
-    # logs model signatures (describing model inputs and outputs), trained models (as MLflow model artifacts) & dataset information to the active fluent run
-    mlflow.autolog()
-
-    experiment_name = "test_GG"
-    try:
-        experiment_id = mlflow.create_experiment(name=experiment_name, tags={"dev": "LM"})
-    except:
-        print(f"experiment test_GG already exists")
-        experiment_id = mlflow.get_experiment_by_name("test_GG").experiment_id
-    
-    mlflow.set_experiment(experiment_name)
-
-    import uvicorn
     uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
