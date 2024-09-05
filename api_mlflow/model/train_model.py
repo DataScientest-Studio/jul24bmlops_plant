@@ -1,27 +1,16 @@
 import argparse
-import sys
 import os
-# 3 = (tensorflow) INFO, WARNING, and ERROR messages are not printed - these are mostly CUDA/GPU-related (irrelevant) issues
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+import sys
+
 import numpy as np
 import tensorflow as tf
+from sklearn.metrics import classification_report, confusion_matrix
 from tensorflow.keras import layers
 from tensorflow.keras.applications import MobileNetV2
-from sklearn.metrics import classification_report, confusion_matrix
 
-BATCH_SIZE = 32
-IMAGE_SIZE = (180, 180)
-BASE_LEARNING_RATE = 0.0001
-FINE_TUNE_AT = 100
-INITIAL_EPOCHS = 10
-FINE_TUNE_EPOCHS = 10
-SEED = 123
-VALIDATION_SPLIT = 0.2
-VAL_TST_SPLIT_ENUM = 1
-VAL_TST_SPLIT = 2
-CHNLS = (3,)
-DROPOUT_RATE = 0.2
-INIT_WEIGHTS = "imagenet"
+# 3 = (tensorflow) INFO, WARNING, and ERROR messages are not printed - these are mostly CUDA/GPU-related (irrelevant) issues
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+
 
 # hyperparameters:
 # Learning Rate: Controls the step size during gradient descent.
@@ -31,24 +20,13 @@ INIT_WEIGHTS = "imagenet"
 # Optimizer Type: Algorithm used to update model parameters (e.g., Adam, SGD).
 # Number of Layers and Units: Architecture of the neural network, including the number of layers and neurons per layer.
 class TrainPR:
-    def __init__(
-            self,
-            model_path=None,
-            **kwargs
-    ):
+    def __init__(self, model_path=None, **kwargs):
         """
         Initialize the training configuration.
 
         Args:
             model_path (str, optional): The path to a previously saved model. If provided, the model will be loaded from this path.
             kwargs: Other hyperparameters, which are saved in self.model when provided.
-
-            image_size (tuple): The size of the input images (height, width).
-            batch_size (int): The number of samples per batch.
-            base_learning_rate (float): The initial learning rate for training.
-            fine_tune_at (int): The layer at which to start fine-tuning.
-            initial_epochs (int): The number of epochs to train before fine-tuning.
-            fine_tune_epochs (int): The number of epochs to fine-tune the model.
 
         Attributes:
             image_size (tuple): The size of the input images (height, width).
@@ -63,28 +41,52 @@ class TrainPR:
             val_ds (Optional[tf.data.Dataset]): The validation dataset, initialized as None.
             test_ds (Optional[tf.data.Dataset]): The test dataset, initialized as None.
         """
+        # Set default values
+        defaults = {
+            "image_size": (180, 180),
+            "batch_size": 32,
+            "base_learning_rate": 0.001,
+            "fine_tune_at": 100,
+            "initial_epochs": 10,
+            "fine_tune_epochs": 10,
+            "seed": 123,
+            "validation_split": 0.2,
+            "val_tst_split_enum": 1,
+            "val_tst_split": 2,
+            "chnls": (3,),
+            "dropout_rate": 0.2,
+            "init_weights": "imagenet",
+        }
+
+        # Update defaults with any values provided in kwargs
+        defaults.update(kwargs)
+
+        # Assign attributes
+        self.image_size = defaults["image_size"]
+        self.batch_size = defaults["batch_size"]
+        self.base_learning_rate = defaults["base_learning_rate"]
+        self.fine_tune_at = defaults["fine_tune_at"]
+        self.initial_epochs = defaults["initial_epochs"]
+        self.fine_tune_epochs = defaults["fine_tune_epochs"]
+        self.seed = defaults["seed"]
+        self.validation_split = defaults["validation_split"]
+        self.val_tst_split_enum = defaults["val_tst_split_enum"]
+        self.val_tst_split = defaults["val_tst_split"]
+        self.chnls = defaults["chnls"]
+        self.dropout_rate = defaults["dropout_rate"]
+        self.init_weights = defaults["init_weights"]
+
+        self.model = None
         self.train_ds = None
-        self.class_names = []
         self.val_ds = None
         self.test_ds = None
-        self.model = None
-        self.seed = SEED
-        self.validation_split = VALIDATION_SPLIT
-        self.val_tst_split_enum = VAL_TST_SPLIT_ENUM
-        self.val_tst_split = VAL_TST_SPLIT
-        assert self.val_tst_split_enum < self.val_tst_split
-        self.chnls = CHNLS
-        self.dropout_rate = DROPOUT_RATE
-        self.init_weights = INIT_WEIGHTS
+
+        self.class_names = []
+
         if model_path:
             # print("Loading model from path:", model_path)  # Debug statement
             self.load_model(model_path)
-        self.image_size = kwargs.get("image_size")
-        self.batch_size = kwargs.get("batch_size")
-        self.base_learning_rate = kwargs.get("base_learning_rate")
-        self.fine_tune_at = kwargs.get("fine_tune_at")
-        self.initial_epochs = kwargs.get("initial_epochs")
-        self.fine_tune_epochs = kwargs.get("fine_tune_epochs")
+            # print("Model loaded:", self.model)  # Debug statement
 
     def load_model(self, model_path: str):
         """
@@ -119,13 +121,21 @@ class TrainPR:
         """
         self.image_size = eval(kwargs.get("image_size", self.image_size))
         self.batch_size = int(kwargs.get("batch_size", self.batch_size))
-        self.base_learning_rate = float(kwargs.get("base_learning_rate", self.base_learning_rate))
+        self.base_learning_rate = float(
+            kwargs.get("base_learning_rate", self.base_learning_rate)
+        )
         self.fine_tune_at = int(kwargs.get("fine_tune_at", self.fine_tune_at))
         self.initial_epochs = int(kwargs.get("initial_epochs", self.initial_epochs))
-        self.fine_tune_epochs = int(kwargs.get("fine_tune_epochs", self.fine_tune_epochs))
+        self.fine_tune_epochs = int(
+            kwargs.get("fine_tune_epochs", self.fine_tune_epochs)
+        )
         self.seed = int(kwargs.get("seed", self.seed))
-        self.validation_split = float(kwargs.get("validation_split", self.validation_split))
-        self.val_tst_split_enum = int(kwargs.get("val_tst_split_enum", self.val_tst_split_enum))
+        self.validation_split = float(
+            kwargs.get("validation_split", self.validation_split)
+        )
+        self.val_tst_split_enum = int(
+            kwargs.get("val_tst_split_enum", self.val_tst_split_enum)
+        )
         self.val_tst_split = int(kwargs.get("val_tst_split", self.val_tst_split))
         assert self.val_tst_split_enum < self.val_tst_split
         self.chnls = eval(kwargs.get("chnls", self.chnls))
@@ -174,8 +184,12 @@ class TrainPR:
             )
 
             val_batches = tf.data.experimental.cardinality(val_ds)
-            test_ds = val_ds.take((self.val_tst_split_enum * val_batches) // self.val_tst_split)
-            val_ds = val_ds.skip((self.val_tst_split_enum * val_batches) // self.val_tst_split)
+            test_ds = val_ds.take(
+                (self.val_tst_split_enum * val_batches) // self.val_tst_split
+            )
+            val_ds = val_ds.skip(
+                (self.val_tst_split_enum * val_batches) // self.val_tst_split
+            )
             # Add the loaded datasets to the respective lists
             train_datasets.append(train_ds)
             val_datasets.append(val_ds)
@@ -192,7 +206,7 @@ class TrainPR:
 
         self.test_ds = test_datasets[0]
         for ds in test_datasets[1:]:
-            self.test_ds = self.test_ds.concatenate(ds)      
+            self.test_ds = self.test_ds.concatenate(ds)
 
     def preprocess(self):
         """
@@ -213,7 +227,7 @@ class TrainPR:
         self.val_ds = self.val_ds.cache().prefetch(buffer_size=tf.data.AUTOTUNE)
         self.test_ds = self.test_ds.cache().prefetch(buffer_size=tf.data.AUTOTUNE)
 
-    def train_model(self, is_init: bool=True):
+    def train_model(self, is_init: bool = True):
         """
         Builds, compiles & trains the model using the training dataset and validates it using the validation dataset.
 
@@ -229,7 +243,9 @@ class TrainPR:
         if is_init:
             num_classes = len(self.class_names)
             base_model = MobileNetV2(
-                input_shape=self.image_size + self.chnls, include_top=False, weights=self.init_weights
+                input_shape=self.image_size + self.chnls,
+                include_top=False,
+                weights=self.init_weights,
             )
             # Freeze the base model
             base_model.trainable = False
@@ -246,7 +262,9 @@ class TrainPR:
             self.model = tf.keras.Model(inputs, outputs)
 
             self.model.compile(
-                optimizer=tf.keras.optimizers.Adam(learning_rate=self.base_learning_rate),
+                optimizer=tf.keras.optimizers.Adam(
+                    learning_rate=self.base_learning_rate
+                ),
                 loss=tf.keras.losses.SparseCategoricalCrossentropy(),
                 metrics=["accuracy"],
             )
@@ -256,7 +274,7 @@ class TrainPR:
                 epochs=self.initial_epochs,
                 validation_data=self.val_ds,
             )
-            
+
             epochs = self.initial_epochs + self.fine_tune_epochs
             init_epoch = len(history.epoch)
 
@@ -291,9 +309,11 @@ class TrainPR:
         predicted_classes = np.array([])
 
         for x, y in self.test_ds:
-            predicted_classes = np.concatenate([predicted_classes, np.argmax(self.model(x, training=False), axis=-1)]).astype(int)
+            predicted_classes = np.concatenate(
+                [predicted_classes, np.argmax(self.model(x, training=False), axis=-1)]
+            ).astype(int)
             test_classes = np.concatenate([test_classes, y.numpy()]).astype(int)
-        
+
         return predicted_classes, test_classes
 
     def save_model(self, filename: str):
@@ -320,7 +340,7 @@ if __name__ == "__main__":
         "-d",
         "--data",
         type=str,
-        nargs='+',
+        nargs="+",
         help="Path to the data (required for both initialization and training)",
     )
     parser.add_argument(
@@ -359,9 +379,9 @@ if __name__ == "__main__":
     BATCH_SIZE = 32
     IMAGE_SIZE = (180, 180)
     # argument for the script: -d/--data <data_path_list>
-    DATA_PATH_LIST = args.data # "../../data"
+    DATA_PATH_LIST = args.data  # "../../data"
     # argument for the script: -t/--train <model_path>
-    MODEL_FILENAME = args.train #"../../data"
+    MODEL_FILENAME = args.train  # "../../data"
     BASE_LEARNING_RATE = 0.0001
     FINE_TUNE_AT = 100
     INITIAL_EPOCHS = 10
@@ -387,7 +407,9 @@ if __name__ == "__main__":
 
         # Load data
         # The information has to be taken from the DB (retrain_decider.py module)
-        train_pr.load_data(DATA_PATH_LIST, SEED)  # we need to merge the folders starting from
+        train_pr.load_data(
+            DATA_PATH_LIST, SEED
+        )  # we need to merge the folders starting from
 
     # Preprocess data
     train_pr.preprocess()
