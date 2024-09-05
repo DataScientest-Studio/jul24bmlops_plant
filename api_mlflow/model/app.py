@@ -36,10 +36,10 @@ async def train_model(
 ):
     if params:
         hyper_list = [f"{key}={value}" for key, value in params.model_dump().items()]
-        cmd_lst = ["python3", "mlflow_train.py", "-i", "-p"] + hyper_list
+        cmd_lst = ["python3", "model/mlflow_train.py", "-i", "-p"] + hyper_list
         cmd_lst.extend(["-d"] + paths)
     else:
-        cmd_lst = ["python3", "mlflow_train.py", "-i", "-d"] + paths
+        cmd_lst = ["python3", "model/mlflow_train.py", "-i", "-d"] + paths
     subprocess.run(cmd_lst)
 
 
@@ -54,11 +54,11 @@ async def retrain_model(
     ):
     if params:
         hyper_list = [f"{key}={value}" for key, value in params.model_dump().items()]
-        cmd_lst = ["python3", "mlflow_train.py", "-p"] + hyper_list
-        cmd_lst.extend(["-t"] + model_file_path)
+        cmd_lst = ["python3", "model/mlflow_train.py", "-p"] + hyper_list
+        cmd_lst.extend(["-t", model_file_path])
         cmd_lst.extend(["-d"] + paths)
     else:
-        cmd_lst = ["python3", "mlflow_train.py", "-t"] + model_file_path
+        cmd_lst = ["python3", "model/mlflow_train.py", "-t", model_file_path]
         cmd_lst.extend(["-d"] + paths)
     subprocess.run(cmd_lst)
 
