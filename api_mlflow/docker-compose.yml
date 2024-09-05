@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  mlflow_fastapi:
+    image: lmenale/pr_model:1.0
+    ports:
+      - "81:5000"  # Expose port for MLFlow UI
+      - "82:8000"  # Expose port for FastAPI
+    environment:
+      - MLFLOW_TRACK_DIR_PATH=/app/MLFlow
+      - MLFLOW_MODEL_DIR_PATH=/app/Model
+      - IMAGES_DIR_PATH=/app/Data
+    volumes:
+      - ./mlflow_data:/app/MLFlow  # Persistent volume for MLFlow tracking data
+      - ./model_data:/app/Model    # Persistent volume for model data
+      - ./image_data:/app/Data    # Persistent volume for image data

@@ -26,6 +26,7 @@ WORKDIR /app
 
 # Copy the pyproject.toml and poetry.lock files to install dependencies
 COPY pyproject.toml ./
+COPY README.md ./
 
 # Install dependencies using Poetry, excluding dev dependencies
 RUN poetry install --no-dev --no-root --no-interaction --no-ansi
@@ -47,10 +48,15 @@ FROM python:3.11-slim AS runtime
 # Set environment variables for the runtime stage
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app
+    PYTHONPATH=/app \
+    MLFLOW_TRACK_DIR_PATH="/app/MLFlow" \
+    MLFLOW_MODEL_DIR_PATH="/app/Model"
 
 # Set the working directory in the runtime stage
 WORKDIR /app
+
+# Create the directories for MLFlow tracking and model storage
+RUN mkdir -p /app/MLFlow /app/Model
 
 # Copy the built package from the builder stage
 COPY --from=builder /app/dist/pr_model-0.1.0-py3-none-any.whl /app/
@@ -60,10 +66,11 @@ RUN pip install /app/pr_model-0.1.0-py3-none-any.whl
 
 # Copy the application source code (if needed)
 COPY --from=builder /app/model/mlflow_train.py /app/
+COPY --from=builder /app/model/app.py /app/
 
 # Expose ports for MLFlow and FastAPI
 EXPOSE 5000 8000
 
 # Command to run both MLFlow and FastAPI
-# CMD ["sh", "-c", "mlflow ui --host 0.0.0.0 --port 5000 & uvicorn mlflow_train:app --host 0.0.0.0 --port 8000"]
-CMD ["python"]
+CMD ["sh", "-c", "mlflow ui --backend-store-uri ${MLFLOW_TRACK_DIR_PATH} --host 0.0.0.0 --port 5000 & uvicorn app:app --host 0.0.0.0 --port 8000"]
+# CMD ["python"]
