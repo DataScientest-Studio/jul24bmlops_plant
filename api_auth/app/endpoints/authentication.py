@@ -148,9 +148,9 @@ def list_roles(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
         raise http_ex
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to retrieve roles list: {str(e)}")
+    
 
-
-@router.post("/roles/", response_model=RoleResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(get_current_admin_user)])
+@router.post("/roles/", response_model=RoleResponse, status_code=status.HTTP_201_CREATED)
 def create_role(role: RoleBase, db: Session = Depends(get_db)):
     try:
         db_role = db.query(Role).filter(Role.role_name == role.role_name).first()

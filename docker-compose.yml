@@ -7,6 +7,7 @@ services:
       context: ./api_auth
     container_name: api_auth
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    restart: always
     volumes:
       - ./api_auth:/app
     ports:
@@ -25,6 +26,7 @@ services:
       context: ./api_prediction
     container_name: api_prediction
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    restart: always
     volumes:
       - ./api_prediction:/app
     ports:
@@ -43,6 +45,7 @@ services:
       context: ./api_training
     container_name: api_training
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    restart: always
     volumes:
       - ./api_training:/app
     ports:
@@ -61,6 +64,7 @@ services:
       context: ./api_db
     container_name: api_db
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    restart: always
     volumes:
       - ./api_db:/app
     ports:
@@ -95,6 +99,7 @@ services:
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@admin.com
       PGADMIN_DEFAULT_PASSWORD: admin
+    restart: always
     ports:
       - "5050:80"
     depends_on:
