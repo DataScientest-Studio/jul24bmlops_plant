@@ -106,6 +106,7 @@ def parse_hyper_list(hyper_list):
 def first_training(hyper, data):
     if hyper:
         train_pr = TrainPR(**parse_hyper_list(hyper))
+        mlflow.log_param(hyper)
     else:
         train_pr = TrainPR()
 
@@ -146,6 +147,7 @@ def re_training(train, hyper, data):
 
     if hyper:
         train_pr.update_hyperparameters(**parse_hyper_list(hyper))
+        mlflow.log_param(hyper)
 
     print("Debug 1")
     # Load the images
@@ -240,9 +242,12 @@ if __name__ == "__main__":
         experiment = mlflow.get_experiment(experiment_id)
         print("experiment data:")
         print_xprmnt_info(experiment)
+        # mlflow.log_metric()
 
         # prints run data
         print("run data:")
         print_run_info(mlflow.get_run(run_id=run.info.run_id))
 
     print("********************** MLFlow_train end **********************")
+    # Close the MLflow run
+    mlflow.end_run()
