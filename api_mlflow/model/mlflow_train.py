@@ -239,11 +239,6 @@ if __name__ == "__main__":
         experiment = mlflow.get_experiment(experiment_id)
         print("experiment data:")
         print_xprmnt_info(experiment)
-        # mlflow.log_metric()
-
-        # prints run data
-        print("run data:")
-        print_run_info(mlflow.get_run(run_id=run.info.run_id))
 
     print("********************** MLFlow_train end **********************")
     # Close the MLflow run
