@@ -44,7 +44,6 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app \
     MLFLOW_TRACK_DIR_PATH="/app/MLFlow" \
-    MLFLOW_MODEL_DIR_PATH="/app/Model" \
     IMAGES_DIR_PATH="/app/Data"
 
 # Set the working directory

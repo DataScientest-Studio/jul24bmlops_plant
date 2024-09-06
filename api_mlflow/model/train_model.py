@@ -310,7 +310,7 @@ class TrainPR:
 
         return predicted_classes, test_classes
 
-    def save_model(self, filename: str):
+    def save(self, filename: str):
         """
         Save the current model to a file.
 
