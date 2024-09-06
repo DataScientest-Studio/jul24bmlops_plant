@@ -23,8 +23,33 @@ class Hyperparameters(BaseModel):
     dropout_rate: float = Field(default=0.2, description="Dropout rate")
     init_weights: str = Field(default="imagenet", description="Initial weights for the model")
 
-class PredictionInput(BaseModel):
-    features: list
+# class TopPrediction(BaseModel):
+#     class_name: str
+#     confidence: float
+
+# class PredictionResponse(BaseModel):
+#     predicted_class: str
+#     confidence: float
+#     top_5_predictions: List[TopPrediction]
+#     message: str
+
+
+# # use this for create
+# class PredictionBase(BaseModel):
+#     user_id: Optional[int] = None
+#     the_model_id: Optional[int] = None
+#     image_path: Optional[str] = None
+#     prediction: dict
+#     top_5_prediction: Optional[List[Dict]] = None
+#     confidence: float
+#     feedback_given: Optional[bool] = False
+#     feedback_comment: Optional[str] = None
+
+
+# class PredictionBaseResponse(PredictionBase):
+#     prediction_id: int
+#     predicted_at: datetime
+
 
 ## Endpoints to train the (initial) model
 # with or without hyperparameter tuning
@@ -61,6 +86,26 @@ async def retrain_model(
         cmd_lst = ["python3", "mlflow_train.py", "-t", model_file_path]
         cmd_lst.extend(["-d"] + paths)
     subprocess.run(cmd_lst)
+
+
+# @app.post("/predict", response_model=PredictionResponse)
+# async def predict(
+#     file: UploadFile = File(...), 
+#     # token: str = Depends(get_token_from_request),  
+#     db: Session = Depends(get_db)
+# ):
+#     # current_user = await get_current_user(token)
+    
+#     try:
+#         # Prediction logic
+#         img_data = await file.read()
+#         img = image.load_img(BytesIO(img_data), target_size=(180, 180))
+#         img = image.img_to_array(img)
+#         img = np.expand_dims(img, axis=0)
+        
+#         predictions = model.predict(img)
+#         predicted_class_idx = np.argmax(predictions, axis=1)[0]
+#         predicted_class = CLASS_NAMES[predicted_class_idx]
 
 
 if __name__ == "__main__":
