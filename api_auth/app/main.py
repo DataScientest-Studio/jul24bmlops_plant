@@ -23,3 +23,7 @@ app.include_router(error_log_router, tags=["Error Log"])
 @app.get("/")
 def read_root():
     return {"message": "Welcome to the Auth API!"}
+
+@app.get("/test/")
+def the_test():
+    return {"message": "Welcome to the Auth API!"}
