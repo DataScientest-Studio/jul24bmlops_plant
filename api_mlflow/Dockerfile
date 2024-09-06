@@ -58,7 +58,7 @@ RUN mkdir -p /app/MLFlow /app/Model /app/Data && \
     pip install /app/pr_model-0.1.0-py3-none-any.whl
 
 # Expose ports for MLFlow and FastAPI
-EXPOSE 5000 8000
+EXPOSE 5000 8005
 
 # Command to run both MLFlow and FastAPI
-CMD ["sh", "-c", "mlflow ui --backend-store-uri ${MLFLOW_TRACK_DIR_PATH} --host 0.0.0.0 --port 5000 & uvicorn app:app --host 0.0.0.0 --port 8000"]
+CMD ["sh", "-c", "mlflow ui --backend-store-uri ${MLFLOW_TRACK_DIR_PATH} --host 0.0.0.0 --port 5000 & uvicorn app:app --host 0.0.0.0 --port 8005"]

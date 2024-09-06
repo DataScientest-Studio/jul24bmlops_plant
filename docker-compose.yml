@@ -11,7 +11,7 @@ services:
     volumes:
       - ./api_auth:/app
     ports:
-      - "8001:8000"
+      - "81:8000"
     environment:
       - DATABASE_URL=postgresql://postgres_user:postgres_password@db:5432/postgres_db
       - PYTHONPATH=/app
@@ -25,12 +25,12 @@ services:
     build:
       context: ./api_prediction
     container_name: api_prediction
-    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8002"]
     restart: always
     volumes:
       - ./api_prediction:/app
     ports:
-      - "8002:8000"
+      - "82:8002"
     environment:
       - DATABASE_URL=postgresql://postgres_user:postgres_password@db:5432/postgres_db
       - PYTHONPATH=/app
@@ -44,12 +44,12 @@ services:
     build:
       context: ./api_training
     container_name: api_training
-    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8003"]
     restart: always
     volumes:
       - ./api_training:/app
     ports:
-      - "8003:8000"
+      - "83:8003"
     environment:
       - DATABASE_URL=postgresql://postgres_user:postgres_password@db:5432/postgres_db
       - PYTHONPATH=/app
@@ -63,12 +63,12 @@ services:
     build:
       context: ./api_db
     container_name: api_db
-    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8004"]
     restart: always
     volumes:
       - ./api_db:/app
     ports:
-      - "8004:8000"
+      - "84:8004"
     environment:
       - DATABASE_URL=postgresql://postgres_user:postgres_password@db:5432/postgres_db
       - PYTHONPATH=/app
@@ -112,6 +112,7 @@ networks:
   plant_network:
     driver: bridge
 
+# To be deleted
 volumes:
   db:
     driver: local
