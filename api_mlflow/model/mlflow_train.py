@@ -106,23 +106,24 @@ def parse_hyper_list(hyper_list):
 def first_training(hyper, data):
     if hyper:
         train_pr = TrainPR(**parse_hyper_list(hyper))
+        mlflow.log_param(hyper)
     else:
         train_pr = TrainPR()
 
-    print("Debug 1")
+    # Use os.path.join to combine the model_images_dir with each element in data
+    data = [os.path.join(model_images_dir, subdir) for subdir in data]
+
     # Load the images
     train_pr.load_data(data)
 
-    print("Debug 2")
     # preprocesses the data (in fact, just caches & prefetches)
     train_pr.preprocess()
 
-    print("Debug 3")
     # trains the model
     history = train_pr.train_model()
 
     # saves the (re)trained model
-    model_file_path = mlflow_model_dir + "TL_TR_" + \
+    model_file_path = mlflow_model_dir + "/TL_TR_" + \
             create_run_timestamp().removeprefix("RUN") + "TS_" + \
             str(len(train_pr.class_names)) + 'cls_' + \
             str(train_pr.image_size[0]) + "px_" + \
@@ -146,21 +147,19 @@ def re_training(train, hyper, data):
 
     if hyper:
         train_pr.update_hyperparameters(**parse_hyper_list(hyper))
+        mlflow.log_param(hyper)
 
-    print("Debug 1")
     # Load the images
     train_pr.load_data(data)
 
-    print("Debug 2")
     # preprocesses the data (in fact, just caches & prefetches)
     train_pr.preprocess()
 
-    print("Debug 3")
     # trains the model
     history = train_pr.train_model()
 
     # saves the (re)trained model
-    model_file_path = mlflow_model_dir + "RL_TR_" + \
+    model_file_path = mlflow_model_dir + "/RL_TR_" + \
             create_run_timestamp().removeprefix("RUN") + "TS_" + \
             str(len(train_pr.class_names)) + 'cls_' + \
             str(train_pr.image_size[0]) + "px_" + \
@@ -240,9 +239,12 @@ if __name__ == "__main__":
         experiment = mlflow.get_experiment(experiment_id)
         print("experiment data:")
         print_xprmnt_info(experiment)
+        # mlflow.log_metric()
 
         # prints run data
         print("run data:")
         print_run_info(mlflow.get_run(run_id=run.info.run_id))
 
     print("********************** MLFlow_train end **********************")
+    # Close the MLflow run
+    mlflow.end_run()
