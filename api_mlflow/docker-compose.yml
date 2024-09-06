@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   mlflow_fastapi:
     image: lmenale/pr_model:1.0
