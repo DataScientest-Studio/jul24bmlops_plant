@@ -291,7 +291,7 @@ class TrainPR:
 
         return history
 
-    def predict(self):
+    def predict(self, dump: bool=False):
         """
         Predicts classes for test dataset using the trained model.
 
@@ -308,9 +308,13 @@ class TrainPR:
             ).astype(int)
             test_classes = np.concatenate([test_classes, y.numpy()]).astype(int)
 
+        if dump:
+            print(confusion_matrix(test_classes, predicted_classes))
+            print(classification_report(test_classes, predicted_classes))
+        
         return predicted_classes, test_classes
 
-    def save(self, filename: str):
+    def save_model(self, filename: str):
         """
         Save the current model to a file.
 

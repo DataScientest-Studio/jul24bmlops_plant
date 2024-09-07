@@ -8,7 +8,6 @@ import os
 from datetime import datetime
 
 import mlflow
-from predict_model import prdct, show_clsf_rprt, show_conf_mtrx
 from train_model import TrainPR
 
 
@@ -123,7 +122,7 @@ def first_training(hyper, data):
     history = train_pr.train_model()
 
     # saves the (re)trained model
-    model_file_path = mlflow_tracking_dir + "/models/TL_TR_" + \
+    model_file_path = mlflow_model_dir + "/TL_TR_" + \
             create_run_timestamp().removeprefix("RUN") + "TS_" + \
             str(len(train_pr.class_names)) + 'cls_' + \
             str(train_pr.image_size[0]) + "px_" + \
@@ -131,25 +130,23 @@ def first_training(hyper, data):
             str(train_pr.fine_tune_epochs) + "fte_" + \
             "model.keras"
     
-    mlflow.keras.save_model(train_pr, model_file_path)
-    # train_pr.save_model(model_file_path)
+    train_pr.save_model(model_file_path)
 
     # Prediction (on the target [test] dataset)
-    true_classes, predicted_classes = prdct(model_file_path, train_pr.test_ds)
+    true_classes, predicted_classes = train_pr.predict(dump=True)
 
-    # prints Confusion Matrix & Classification Report
-    show_clsf_rprt(true_classes, predicted_classes, train_pr.class_names)
-    show_conf_mtrx(true_classes, predicted_classes)
-
-    return train_pr
+    return true_classes, predicted_classes
 
 
 def re_training(train, hyper, data):
-    train_pr = TrainPR(train)
+    train_pr = TrainPR(mlflow_model_dir + "/" + train)
 
     if hyper:
         train_pr.update_hyperparameters(**parse_hyper_list(hyper))
         mlflow.log_param(hyper)
+
+    # Use os.path.join to combine the model_images_dir with each element in data
+    data = [os.path.join(model_images_dir, subdir) for subdir in data]
 
     # Load the images
     train_pr.load_data(data)
@@ -161,7 +158,7 @@ def re_training(train, hyper, data):
     history = train_pr.train_model()
 
     # saves the (re)trained model
-    model_file_path = mlflow_tracking_dir + "/models/RL_TR_" + \
+    model_file_path = mlflow_model_dir + "/RL_TR_" + \
             create_run_timestamp().removeprefix("RUN") + "TS_" + \
             str(len(train_pr.class_names)) + 'cls_' + \
             str(train_pr.image_size[0]) + "px_" + \
@@ -169,17 +166,12 @@ def re_training(train, hyper, data):
             str(train_pr.fine_tune_epochs) + "fte_" + \
             "model.keras"
     
-    mlflow.keras.save_model(train_pr, model_file_path)
-    # train_pr.save_model(model_file_path)
+    train_pr.save_model(model_file_path)
 
     # Prediction (on the target [test] dataset)
-    true_classes, predicted_classes = prdct(model_file_path, train_pr.test_ds)
+    true_classes, predicted_classes = train_pr.predict(dump=True)
 
-    # prints Confusion Matrix & Classification Report
-    show_clsf_rprt(true_classes, predicted_classes, train_pr.class_names)
-    show_conf_mtrx(true_classes, predicted_classes)
-
-    return train_pr
+    return true_classes, predicted_classes
 
 
 def print_xprmnt_info(experiment):
@@ -209,6 +201,7 @@ if __name__ == "__main__":
     # one of the ways to launch a web interface that displays run data stored in the 'mlruns' directory is the command line 'mlflow ui --backend-store-uri <MLFLOW_TRACK_DIR_PATH>'
     # Read the MLFLOW_TRACK_DIR_PATH environment variable
     mlflow_tracking_dir = os.getenv("MLFLOW_TRACK_DIR_PATH", "./MLFlow")
+    mlflow_model_dir = os.getenv("MLFLOW_MODEL_DIR_PATH", "./Models")
     model_images_dir = os.getenv("IMAGES_DIR_PATH", "./Data")
     mlflow.set_tracking_uri(mlflow_tracking_dir)
 
