@@ -1,15 +1,26 @@
 services:
   mlflow_fastapi:
     image: lmenale/pr_model:1.0
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '6'
+    #       memory: 12288M
+    #     reservations:
+    #       cpus: '2'
+    #       memory: 8096M
+    # cpuset: "1"
     ports:
       - "86:5000"  # Expose port for MLFlow UI
       - "85:8005"  # Expose port for FastAPI
     environment:
       - MLFLOW_TRACK_DIR_PATH=/app/MLFlow
+      - MLFLOW_MODEL_DIR_PATH=/app/Models
       - IMAGES_DIR_PATH=/app/Data
     volumes:
       - ./mlflow_data:/app/MLFlow  # Persistent volume for MLFlow tracking data
-      - ./image_data:/app/Data    # Persistent volume for image data
+      - ./model_data:/app/Models   # Persistent volume for model data
+      - ./image_data:/app/Data     # Persistent volume for image data
 
 networks:
   plant_network:
