@@ -9,7 +9,7 @@ Just follow these few steps.
 - Planning meetings and future actions
 
 ## Step 1
-[ ] Building the specifications and the API: 09.08.2024
+[X] Building the specifications and the API: 09.08.2024
 The most important phase of any software engineering project (including AI-based software) is to understand the business problem and create requirements. These requirements are translated into model objectives and model outputs. Possible errors and minimum launch success must be specified. To frame the requirements, you will need to draw up a specification following these guidelines.
 Before diving in headlong on your own, don't hesitate to get together to discuss the following points:
 - Define the context for your project
@@ -29,7 +29,7 @@ Rendering(s) :
 - the database
 
 ## Step 2
-[ ] Isolation & CI/CD: Model maintenance and continuous monitoring: 25.08.2024 (06.09.2024)
+[X] Isolation & CI/CD: Model maintenance and continuous monitoring: 25.08.2024 (06.09.2024)
 Once the ML model has been put into production, it is essential to monitor its performance and maintain it. When an ML model is running on real-world data, a drop in performance can be observed. Therefore, the best practice to avoid a drop in model performance is to monitor its performance continuously to decide whether it is necessary to re-train the model. The decision resulting from the monitoring leads to an update of the machine learning model.
 Points to cover:
 - Containerisation of the API, models and DB
@@ -47,7 +47,7 @@ Rendering:
 - Perform automated tests before deploying code to production to ensure that the code works correctly.
 
 ## Step 3
-[ ] Demo + Defence: 09.09.2024
+[X] Demo + Defence: 09.09.2024
 For your demo, your application will need to be :
 - Organised and documented on GitHub with the installation procedure.
 - Works without bugs.
