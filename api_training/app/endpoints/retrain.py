@@ -1,46 +1,31 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
-import httpx  # An HTTP client library to make requests
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+import httpx 
+import os
 from typing import List, Optional, Tuple
+from ..utils.authorization_utils import get_current_admin_user, create_error_log_in_auth_service
+from ..schemas.retrain_schema import Hyperparameters
 
 from sqlalchemy.orm import Session
-# from ..utils.training_utils import train_model
-# from ..schemas.retrain_schema import RetrainResponse
-# from ..database.db import get_db
-# from ..schemas.auth_schema import UserBase
-# from ..auth.auth_utils import get_current_admin_user
 
 router = APIRouter()
 
-# code goes here 
-
-# MLFLOW_ENDPOINT = "http://auth:8000"
-MLFLOW_ENDPOINT = 'http://mlflow:8005'
+bearer_scheme = HTTPBearer()
 
 
-# hyperparameters
-class Hyperparameters(BaseModel):
-    image_size: Tuple[int, int] = (180, 180)
-    batch_size: int = 32
-    base_learning_rate: float = 0.001
-    fine_tune_at: int = 100
-    initial_epochs: int = 10
-    fine_tune_epochs: int = 10
-    seed: int = 123
-    validation_split: float = 0.2
-    val_tst_split_enum: int = 1
-    val_tst_split: int = 2
-    chnls: Tuple[int] = (3,)
-    dropout_rate: float = 0.2
-    init_weights: str = "imagenet"
+MLFLOW_ENDPOINT = os.getenv("MLFLOW_ENDPOINT", "")
+
 
 # training request
 @router.post("/custom/train")
 async def custom_train_model(
     paths: List[str] = Query(..., description="List of paths for training data"),
-    params: Optional[Hyperparameters] = None
+    params: Optional[Hyperparameters] = None,
+    current_user: dict = Depends(get_current_admin_user),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)
 ):
     print('insdie the custom trian funciton')
+    print(f"MLFLOW_ENDPOINT: {MLFLOW_ENDPOINT}")
     try:
         async with httpx.AsyncClient() as client:
             response = await client.post(
@@ -53,6 +38,10 @@ async def custom_train_model(
         print(response.json())
         return response.json()
     except Exception as e:
+        token = credentials.credentials
+        await creating_error_log(token, current_user['user_id'], str(e))
+        print('value of e')
+        print(e)
         raise HTTPException(status_code=500, detail=str(e))
 
 # retraining
@@ -60,7 +49,9 @@ async def custom_train_model(
 async def custom_retrain_model(
     paths: List[str] = Query(..., description="List of paths for retraining data"),
     model_file_path: str = Query(..., description="File path for the model to retrain"),
-    params: Optional[Hyperparameters] = None
+    params: Optional[Hyperparameters] = None,
+    current_user: dict = Depends(get_current_admin_user),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)
 ):
     try:
         async with httpx.AsyncClient() as client:
@@ -74,4 +65,21 @@ async def custom_retrain_model(
         print(response.json())
         return response.json()
     except Exception as e:
+        token = credentials.credentials
+        await creating_error_log(token, current_user['user_id'], str(e))
         raise HTTPException(status_code=500, detail=str(e))
+
+
+async def creating_error_log(token, user_id, error):
+    try:
+        error_log_data = {
+            "error_type": "(Re)Training Error",
+            "error_message": f"Exception Error: {str(error)}",
+            "the_model_id": None,
+            "user_id": user_id
+        }
+        created_error_log = await create_error_log_in_auth_service(error_log_data, token)
+        print('Created error log:', created_error_log)
+    except HTTPException as e:
+        print(f"Failed to create error log: {str(e)}")
+        pass

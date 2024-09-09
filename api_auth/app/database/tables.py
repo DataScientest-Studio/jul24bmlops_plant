@@ -19,7 +19,7 @@ class User(Base):
      # Removed back_populates viewonly=True. in case, to make it less coupled. or you can totally remove it. 
      # predictions = relationship("Prediction", back_populates="user", viewonly=True)  
      # predictions = relationship("Prediction", back_populates="user")
-     error_logs = relationship("ErrorLog", back_populates="user")
+     # error_logs = relationship("ErrorLog", back_populates="user")
      api_request_logs = relationship("APIRequestLog", back_populates="user")
 
 class Role(Base):
@@ -66,9 +66,10 @@ class ErrorLog(Base):
      error_message = Column(Text, nullable=False)
      # the_model_id = Column(Integer, ForeignKey("model_metadata.the_model_id"))
      the_model_id = Column(Integer, nullable=True)
-     user_id = Column(Integer, ForeignKey("users.user_id"))
+     user_id = Column(Integer, nullable=True)
+     # user_id = Column(Integer, ForeignKey("users.user_id"))
      timestamp = Column(DateTime(timezone=True), server_default=func.now())
 
      # model = relationship("ModelMetadata", back_populates="error_logs")
-     user = relationship("User", back_populates="error_logs")
+     # user = relationship("User", back_populates="error_logs")
 

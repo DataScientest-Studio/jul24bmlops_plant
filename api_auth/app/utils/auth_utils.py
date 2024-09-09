@@ -73,8 +73,10 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
 # Dependency to check if the current user is an admin
 def get_current_admin_user(current_user: UserBase = Depends(get_current_user)):
+     print('value of current_user.role.role_name')
+     print(current_user.role.role_name)
      try:
-          if current_user.role.role_name != 'admin':
+          if str(current_user.role.role_name).lower() != 'admin':
                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions")
           print('we made it till here')
           return current_user
@@ -82,20 +84,4 @@ def get_current_admin_user(current_user: UserBase = Depends(get_current_user)):
           raise http_ex
      except Exception as e:
           raise HTTPException(status_code=500, detail=f"Failed to verify admin user: {str(e)}")
-
-
-
-# fake_users_db = {
-#      "arif": {
-#           "username": "arif",
-#           "full_name": "Example User",
-#           "email": "user@example.com",
-#           "hashed_password": "fakehashedarif123",
-#           "disabled": False,
-#      }
-# }
-
-
-# def fake_hash_password(password: str):
-#      return "fakehashed" + password
 

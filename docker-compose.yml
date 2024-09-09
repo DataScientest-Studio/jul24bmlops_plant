@@ -5,77 +5,92 @@ services:
   auth:
     build:
       context: ./api_auth
+    image: auth:1.0
     container_name: api_auth
-    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]
     restart: always
-    volumes:
-      - ./api_auth:/app
     ports:
-      - "81:8000"
-    environment:
-      - DATABASE_URL=postgresql://postgres_user:postgres_password@db:5432/postgres_db
-      - PYTHONPATH=/app
+      - "81:8001"
     depends_on:
       - db
     networks:
       - plant_network
+    env_file:
+      - .env
 
   # Prediction Service
   prediction:
     build:
       context: ./api_prediction
+    image: prediction:1.0
     container_name: api_prediction
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8002"]
     restart: always
-    volumes:
-      - ./api_prediction:/app
     ports:
       - "82:8002"
-    environment:
-      - DATABASE_URL=postgresql://postgres_user:postgres_password@db:5432/postgres_db
-      - PYTHONPATH=/app
     depends_on:
       - db
     networks:
       - plant_network
+    env_file:
+      - .env
 
   # Training Service
   training:
     build:
       context: ./api_training
+    image: training:1.0
     container_name: api_training
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8003"]
     restart: always
-    volumes:
-      - ./api_training:/app
     ports:
       - "83:8003"
-    environment:
-      - DATABASE_URL=postgresql://postgres_user:postgres_password@db:5432/postgres_db
-      - PYTHONPATH=/app
     depends_on:
       - db
     networks:
       - plant_network
+    env_file:
+      - .env
 
   # Database Management Service
   db_management:
     build:
       context: ./api_db
+    image: db_management:1.0
     container_name: api_db
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8004"]
     restart: always
-    volumes:
-      - ./api_db:/app
     ports:
       - "84:8004"
-    environment:
-      - DATABASE_URL=postgresql://postgres_user:postgres_password@db:5432/postgres_db
-      - PYTHONPATH=/app
     depends_on:
       - db
     networks:
       - plant_network
+    env_file:
+      - .env
+
+# MLFLOW services
+  mlflow_fastapi:
+    build:
+      context: ./api_mlflow
+    image: lmenale/pr_model:1.0
+    ports:
+      - "86:5000"  # Expose port for MLFlow UI
+      - "85:8005"  # Expose port for FastAPI
+    depends_on:
+      - db
+    environment:
+      - MLFLOW_TRACK_DIR_PATH=/app/MLFlow
+      - MLFLOW_MODEL_DIR_PATH=/app/Models
+      - IMAGES_DIR_PATH=/app/Data
+    volumes:
+      - ./mlflow_data:/app/MLFlow  # Persistent volume for MLFlow tracking data
+      - ./model_data:/app/Models   # Persistent volume for model data
+      - ./image_data:/app/Data     # Persistent volume for image data
+    networks:
+      - plant_network
+    env_file:
+      - .env
 
   # Database Service
   db:
@@ -91,6 +106,8 @@ services:
       - ./db_data:/var/lib/postgresql/data
     networks:
       - plant_network
+    env_file:
+      - .env
 
   # pgAdmin Service
   pgadmin:
@@ -106,14 +123,13 @@ services:
       - db
     networks:
       - plant_network
-
+    env_file:
+      - .env
 
 networks:
   plant_network:
     driver: bridge
 
-# To be deleted
 volumes:
   db:
     driver: local
-
