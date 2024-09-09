@@ -8,6 +8,8 @@ __pycache__/
 # Distribution / packaging
 .Python
 env/
+api_mlflow/0/
+mlflow_data/
 build/
 env_plant/
 develop-eggs/
@@ -58,7 +60,7 @@ docs/_build/
 target/
 
 # DotEnv configuration
-.env
+# .env
 
 # Database
 *.db

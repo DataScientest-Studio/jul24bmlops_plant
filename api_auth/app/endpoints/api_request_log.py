@@ -12,7 +12,7 @@ router = APIRouter()
 
 # Create a new APIRequestLog (Typically handled internally)
 @router.post("/api_request_logs/", response_model=APIRequestLogResponse)
-def create_api_request_log(
+async def create_api_request_log(
     api_request_log: APIRequestLogBase, 
     db: Session = Depends(get_db),
     current_user: UserBase = Depends(get_current_user)
@@ -30,7 +30,7 @@ def create_api_request_log(
 
 # Get all APIRequestLogs (Admin only)
 @router.get("/api_request_logs/", response_model=List[APIRequestLogResponse])
-def read_api_request_logs(
+async def read_api_request_logs(
     skip: int = 0, limit: int = 100, 
     db: Session = Depends(get_db),
     current_user: UserBase = Depends(get_current_admin_user)
@@ -46,7 +46,7 @@ def read_api_request_logs(
 
 # Get APIRequestLogs for the current UserBase
 @router.get("/api_request_logs/me", response_model=List[APIRequestLogResponse])
-def read_user_api_request_logs(
+async def read_user_api_request_logs(
     db: Session = Depends(get_db),
     current_user: UserBase = Depends(get_current_user)
     ):
@@ -60,7 +60,7 @@ def read_user_api_request_logs(
 
 # Get a specific APIRequestLog by ID (UserBase can access their own, Admin can access all)
 @router.get("/api_request_logs/{request_id}", response_model=APIRequestLogResponse)
-def read_api_request_log(
+async def read_api_request_log(
     request_id: int, 
     db: Session = Depends(get_db),
     current_user: UserBase = Depends(get_current_user)

@@ -10,15 +10,18 @@ from ..utils.auth_utils import get_current_admin_user, get_current_user
 
 router = APIRouter()
 
-# Create a new ErrorLog (Admin only or handled internally)
+# Create a new ErrorLog 
 @router.post("/error_logs/", response_model=ErrorLogResponse)
-def create_error_log(
+async def create_error_log(
     error_log: ErrorLogBase, 
     db: Session = Depends(get_db),
-    current_user: UserBase = Depends(get_current_admin_user)  # Usually internal, but Admin can log manually
+    current_user: UserBase = Depends(get_current_user)  
     ):
+    print('vlaue of **error_log.dict()')
+    # print(**error_log.dict())
     try:
-        db_error_log = ErrorLog(**error_log.dict(), user_id=current_user.user_id)
+        db_error_log = ErrorLog(**error_log.dict())
+        # db_error_log = ErrorLog(**error_log.dict(), user_id=current_user.user_id)
         db.add(db_error_log)
         db.commit()
         db.refresh(db_error_log)
@@ -28,9 +31,10 @@ def create_error_log(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to create error log: {str(e)}")
 
+
 # Get all ErrorLogs (Admin only)
 @router.get("/error_logs/", response_model=List[ErrorLogResponse])
-def read_error_logs(
+async def read_error_logs(
     skip: int = 0, limit: int = 100, 
     db: Session = Depends(get_db),
     current_user: UserBase = Depends(get_current_admin_user)
@@ -45,7 +49,7 @@ def read_error_logs(
 
 # Get ErrorLogs for the current user
 @router.get("/error_logs/me", response_model=List[ErrorLogResponse])
-def read_user_error_logs(
+async def read_user_error_logs(
     db: Session = Depends(get_db),
     current_user: UserBase = Depends(get_current_user)
     ):
@@ -59,7 +63,7 @@ def read_user_error_logs(
 
 # Get a specific ErrorLog by ID (User can access their own, Admin can access all)
 @router.get("/error_logs/{error_id}", response_model=ErrorLogResponse)
-def read_error_log(
+async def read_error_log(
     error_id: int, 
     db: Session = Depends(get_db),
     current_user: UserBase = Depends(get_current_user)

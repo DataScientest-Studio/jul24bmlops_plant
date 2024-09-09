@@ -3,6 +3,7 @@ from typing import Optional
 from datetime import datetime
 
 class Token(BaseModel):
+    http_bearer_token: str
     access_token: str
     token_type: str
 

@@ -1,31 +1,45 @@
-from fastapi import status, Request, HTTPException
 import httpx
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+import os
 
+AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "")
 
-# Base URL for the authentication service
-AUTH_SERVICE_URL = "http://api_auth:8000"
+# HTTPBearer security scheme
+bearer_scheme = HTTPBearer()
 
-async def get_current_user(token: str):
-    """Fetches the current user from the `api_auth` service."""
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
+    """Fetches the current user from the auth` service."""
+    token = credentials.credentials
     async with httpx.AsyncClient() as client:
-        response = await client.get(f"{AUTH_SERVICE_URL}/users/me", headers={"Authorization": f"Bearer {token}"})
+        response = await client.get(f"{AUTH_SERVICE_URL}/users/me/", headers={"Authorization": f"{token}"})
     if response.status_code != 200:
         raise HTTPException(status_code=response.status_code, detail="Invalid credentials")
     return response.json()
 
-async def get_current_admin_user(token: str):
-    """Fetches the current admin user from the `api_auth` service."""
+async def get_current_admin_user(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
+    """Fetches the current admin user from the auth service."""
+    print('inside get_current_admin_user')
+    token = credentials.credentials
     async with httpx.AsyncClient() as client:
-        response = await client.get(f"{AUTH_SERVICE_URL}/users/me/admin", headers={"Authorization": f"Bearer {token}"})
+        response = await client.get(f"{AUTH_SERVICE_URL}/users/me/admin/", headers={"Authorization": f"{token}"})
     if response.status_code != 200:
         raise HTTPException(status_code=response.status_code, detail="Not enough permissions")
     return response.json()
 
-def get_token_from_request(request: Request):
-    """Extract the Bearer token from the request headers."""
-    authorization: str = request.headers.get("Authorization")
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authorization code")
-    return authorization.split(" ")[1]
 
-
+async def create_error_log_in_auth_service(error_log: dict, token: str):
+    """Calls the `auth` service to create an error log."""
+    print('inside of create_error_log_in_auth_service')
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            f"{AUTH_SERVICE_URL}/error_logs/",
+            json=error_log,
+            headers={"Authorization": f"{token}"}
+        )
+    if response.status_code != 200:
+        raise HTTPException(
+            status_code=response.status_code,
+            detail=f"Failed to create error log: {response.text}"
+        )
+    return response.json()

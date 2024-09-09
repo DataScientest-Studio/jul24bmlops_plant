@@ -28,7 +28,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         access_token = create_access_token(
             data={"sub": user.username}, expires_delta=access_token_expires
         )
-        return {"access_token": access_token, "token_type": "bearer"}
+        return {"access_token": access_token, "token_type": "bearer", "http_bearer_token": "Bearer " + access_token}
     except HTTPException as http_ex:
         raise http_ex
     except Exception as e:
@@ -42,7 +42,11 @@ async def signup(user: UserCreate, db: Session = Depends(get_db)):
         if db_user:
             raise HTTPException(status_code=400, detail="Username already registered")
         role = db.query(Role).filter(Role.role_id == user.role_id).first() or None
-        if role == 'admin':
+        print('value of role')
+        print(role)
+        if role is None:
+            raise HTTPException(status_code=400, detail="role does not exist")
+        if str(role).lower() == 'admin':
             raise HTTPException(status_code=400, detail="You are not allowed to register as admin")
         hashed_password = get_password_hash(user.password)  
         db_user = User(
@@ -62,8 +66,8 @@ async def signup(user: UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Failed to signup: {str(e)}")
 
 # Read User (Any authenticated user can access their own data)
-@router.get("/users/me", response_model=UserResponse)
-def read_user_me(current_user: UserBase = Depends(get_current_user)):
+@router.get("/users/me/", response_model=UserResponse)
+async def read_user_me(current_user: UserBase = Depends(get_current_user)):
     try:
         return current_user
     except HTTPException as http_ex:
@@ -72,8 +76,8 @@ def read_user_me(current_user: UserBase = Depends(get_current_user)):
         raise HTTPException(status_code=500, detail=f"Failed to retrieve user info: {str(e)}")
 
 # get admin user 
-@router.get("/users/me/admin", response_model=UserResponse)
-def read_admin_user(current_user: UserBase = Depends(get_current_admin_user)):
+@router.get("/users/me/admin/", response_model=UserResponse)
+async def read_admin_user(current_user: UserBase = Depends(get_current_admin_user)):
     try:
         return current_user
     except HTTPException as http_ex:
@@ -85,7 +89,7 @@ def read_admin_user(current_user: UserBase = Depends(get_current_admin_user)):
 # Admin-only Endpoints (CRUD operations for users):
 # ==================
 @router.get("/users/", response_model=List[UserResponse], dependencies=[Depends(get_current_admin_user)])
-def read_users(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+async def read_users(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
     try:
         users = db.query(User).offset(skip).limit(limit).all()
         return users
@@ -95,7 +99,7 @@ def read_users(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Failed to retrieve users info: {str(e)}")
 
 @router.get("/users/{user_id}", response_model=UserResponse, dependencies=[Depends(get_current_admin_user)])
-def read_user(user_id: int, db: Session = Depends(get_db)):
+async def read_user(user_id: int, db: Session = Depends(get_db)):
     try:
         db_user = db.query(User).filter(User.user_id == user_id).first()
         if db_user is None:
@@ -107,7 +111,7 @@ def read_user(user_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Failed to retrieve user: {str(e)}")
 
 @router.put("/users/{user_id}", response_model=UserResponse, dependencies=[Depends(get_current_admin_user)])
-def update_user(user_id: int, user: UserBase, db: Session = Depends(get_db)):
+async def update_user(user_id: int, user: UserBase, db: Session = Depends(get_db)):
     try:
         db_user = db.query(User).filter(User.user_id == user_id).first()
         if db_user is None:
@@ -123,7 +127,7 @@ def update_user(user_id: int, user: UserBase, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Failed to update user: {str(e)}")
 
 @router.delete("/users/{user_id}", dependencies=[Depends(get_current_admin_user)])
-def delete_user(user_id: int, db: Session = Depends(get_db)):
+async def delete_user(user_id: int, db: Session = Depends(get_db)):
     try:
         db_user = db.query(User).filter(User.user_id == user_id).first()
         if db_user is None:
@@ -140,7 +144,7 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
 # Role Endpoints (Admin-only access)
 # ================================
 @router.get("/roles/list/", response_model=List[RoleResponse], dependencies=[Depends(get_current_admin_user)])
-def list_roles(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+async def list_roles(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
     try:
         roles = db.query(Role).offset(skip).limit(limit).all()
         return roles
@@ -151,7 +155,7 @@ def list_roles(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
     
 
 @router.post("/roles/", response_model=RoleResponse, status_code=status.HTTP_201_CREATED)
-def create_role(role: RoleBase, db: Session = Depends(get_db)):
+async def create_role(role: RoleBase, db: Session = Depends(get_db)):
     try:
         db_role = db.query(Role).filter(Role.role_name == role.role_name).first()
         if db_role:
@@ -167,7 +171,7 @@ def create_role(role: RoleBase, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Failed to create roles: {str(e)}")
 
 @router.get("/roles/{role_id}", response_model=RoleResponse, dependencies=[Depends(get_current_admin_user)])
-def read_role(role_id: int, db: Session = Depends(get_db)):
+async def read_role(role_id: int, db: Session = Depends(get_db)):
     try:
         db_role = db.query(Role).filter(Role.role_id == role_id).first()
         if db_role is None:
@@ -179,7 +183,7 @@ def read_role(role_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Failed to retrieve role: {str(e)}")
 
 @router.put("/roles/{role_id}", response_model=RoleResponse, dependencies=[Depends(get_current_admin_user)])
-def update_role(role_id: int, role: RoleBase, db: Session = Depends(get_db)):
+async def update_role(role_id: int, role: RoleBase, db: Session = Depends(get_db)):
     try:
         db_role = db.query(Role).filter(Role.role_id == role_id).first()
         if db_role is None:
@@ -195,7 +199,7 @@ def update_role(role_id: int, role: RoleBase, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Failed to update role: {str(e)}")
 
 @router.delete("/roles/{role_id}", dependencies=[Depends(get_current_admin_user)])
-def delete_role(role_id: int, db: Session = Depends(get_db)):
+async def delete_role(role_id: int, db: Session = Depends(get_db)):
     try:
         db_role = db.query(Role).filter(Role.role_id == role_id).first()
         if db_role is None:
@@ -207,4 +211,3 @@ def delete_role(role_id: int, db: Session = Depends(get_db)):
         raise http_ex
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to delete role: {str(e)}")
-

@@ -53,3 +53,20 @@ class RetrainResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# hyperparameters
+class Hyperparameters(BaseModel):
+    image_size: tuple[int, int] = (180, 180)
+    batch_size: int = 32
+    base_learning_rate: float = 0.001
+    fine_tune_at: int = 100
+    initial_epochs: int = 10
+    fine_tune_epochs: int = 10
+    seed: int = 123
+    validation_split: float = 0.2
+    val_tst_split_enum: int = 1
+    val_tst_split: int = 2
+    chnls: tuple[int] = (3,)
+    dropout_rate: float = 0.2
+    init_weights: str = "imagenet"
