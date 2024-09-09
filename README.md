@@ -14,32 +14,68 @@ Coordinator Sebastien Sime
 ## Project Organization
 
     ├── .github
-    │   └── workflows         <- Contains the template for the Pull Request
-    │
-    ├── README.md             <- The top-level README for developers using this project.
-    ├── ROADMAP.md            <- The summary plan for developers using this project.
-    │
-    ├── data                  <- Should be in your computer but not on Github (only in .gitignore)
-    │   └── raw               <- The original, immutable data dump.
-    │
-    ├── models                <- Trained and serialized models, model predictions, or model summaries
-    │
-    ├── reports               <- The reports that you'll make during this project as PDF
-    │   └── figures           <- Generated graphics and figures to be used in reporting
-    │
-    ├── poetry.lock           <- Dependencies used by poetry.
-    ├── pyproject.toml        <- Package manager.
-    │
-    └── src                   <- Source code for use in this project.
-        │
-        ├── xxx               <- Here are the dynamic pages created with Streamlit
-        │
-        ├── web               <- Contains all the static paged that are parsed using Streamlit
-        │   ├── img           <- Images used inside the Streamlit app
-        │       └── classes   <- Images that will show the prediction of each class
-        │
-        ├── xxx               <- Utility module for presenting and managing the Tensorflow methods
-        └── xxx               <- main Streamlit app
+    │   └── workflows                           <- Contains the template for the Pull Request and the CI
+    ├──api_auth
+    │  ├──app                                   <- Source code for use in this project.
+    │  │  ├──database
+    │  │  ├──endpoints
+    │  │  ├── main.py
+    │  │  ├──schemas
+    │  │  └──utils
+    │  ├── Dockerfile
+    │  ├── README.md
+    │  ├── requirements.txt
+    │  ├──tests
+    │  └── wait-for-it.sh
+    ├──api_db
+    │  ├──app                                   <- Source code for use in this project.
+    │  │  ├──database
+    │  │  ├──endpoints
+    │  │  ├── main.py
+    │  │  ├──schemas
+    │  │  └──utils
+    │  ├── centralised_db_management.yml
+    │  ├── Dockerfile
+    │  ├── micro_service_architecture.yml
+    │  ├── requirements.txt
+    │  └──tests
+    ├──api_mlflow
+    │  ├── docker-compose.yml
+    │  ├── Dockerfile
+    │  ├──model                                 <- Source code for use in this project.
+    │  ├── pyproject.toml
+    │  ├── README.md
+    │  ├── retrain.sh
+    │  ├──test
+    │  └── train.sh
+    ├──api_prediction
+    │  ├──app                                   <- Source code for use in this project.
+    │  │  ├──database
+    │  │  ├──endpoints
+    │  │  ├── main.py
+    │  │  ├──schemas
+    │  │  └──utils
+    │  ├── Dockerfile
+    │  ├── README.md
+    │  ├── requirements.txt
+    │  └──tests
+    ├──api_training
+    │  ├──app                                   <- Source code for use in this project.
+    │  │  ├──database
+    │  │  ├──endpoints
+    │  │  ├── main.py
+    │  │  ├──schemas
+    │  │  └──utils
+    │  ├── Dockerfile
+    │  ├── requirements.txt
+    │  └──tests
+    ├── docker-compose.yml
+    ├── poetry.lock                             <- Dependencies used by poetry.
+    ├── pyproject.toml                          <- Package manager.
+    ├── README.md                               <- The top-level README for developers using this project.
+    ├──reports                                  <- The reports that you'll make during this project as PDF
+    ├── requirements.txt
+    └── ROADMAP.md                              <- The summary plan for developers using this project.
 
 
 ## Summary plan
