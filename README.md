@@ -45,8 +45,19 @@ Coordinator Sebastien Sime
 ## Summary plan
 Please refer [here](ROADMAP.md)
 
-## Script
-We will use this to mount the GDrive folder.
+## How to build the project
+
+Command to build the images
+```bash
+docker compose build
+```
+
+Command to excute the app
+```bash
+docker compose up
+```
+
+We will use this to mount the GDrive folder that contains the MLFlow data and the Dataset.
 
 
 <p><small>Project based on the <a target="_blank" href="https://drivendata.github.io/cookiecutter-data-science/">cookiecutter data science project template</a>. #cookiecutterdatascience</small></p>
